@@ -9,6 +9,9 @@ from deepspeech_pytorch.decoder import Decoder, GreedyDecoder
 from pytorch_lightning.metrics import Metric
 import Levenshtein as Lev
 
+from average import get_res,complet_csv,get_res_gauss
+from metric import get_correlation_values
+
 
 class ErrorRate(Metric, ABC):
     def __init__(self,
@@ -168,3 +171,45 @@ def run_evaluation(test_loader,
             target_sizes=target_sizes
         )
     return wer.compute(), cer.compute()
+
+@torch.no_grad()
+def run_evaluationdtw(test_loader,
+                      device : torch.device,
+                      model,
+                      precision: int
+                      ):
+    model.eval()
+    id_triplets = []
+    delta_values = []
+    for i, (batch) in tqdm(enumerate(test_loader), total=len(test_loader)):
+        data = batch
+        TGT, OTH, X = data[0], data[1], data[2]
+        id_triplets.append(data[3])
+        # inputs = inputs.to(device) ? 
+        with autocast(enabled=precision == 16):
+            output1,output2,output3 = model(TGT,OTH,X)
+        
+        try:
+                    
+            a = get_res(TGT_output.numpy(), OTH_output.numpy(), X_output.numpy())
+        except:
+            OTH_output = torch.add(OTH_output, 10e-10)
+            X_output = torch.add(X_output, 10e-10)
+            TGT_output = torch.add(TGT_output, 10e-10)
+
+                   
+                    
+            a = get_res(TGT_output.numpy(), OTH_output.numpy(), X_output.numpy())
+        delta_values.append(a)
+
+        id_triplets2 = [id_triplets[x][0] for x in range(len(id_triplets))]
+        df = complet_csv(human_csv, delta_values, id_triplets2)
+
+        spearman = get_correlation_values(df['user_ans'], df['delta_values'], mode='spearman')
+        pearson = get_correlation_values(df['user_ans'], df['delta_values'], mode='pearson')
+
+        pos = [x for x in delta_values if x >= 0]
+        delta_positivity = (len(pos) / len(delta_values)) * 100
+        
+        return spearman, pearson, delta_positivity
+            
