@@ -7,6 +7,7 @@ from tempfile import NamedTemporaryFile
 import librosa
 import numpy as np
 import sox
+import pandas as pd 
 import torch
 from torch.utils.data import Dataset, Sampler, DistributedSampler, DataLoader
 import torchaudio
@@ -24,6 +25,10 @@ def load_audio(path):
     else:
         sound = sound.mean(axis=0)  # multiple channels, average
     return sound.numpy()
+
+def load_audio_librosa(path):
+    sound, sample_rate = librosa.load(path)
+    return sound,sample_rate
 
 
 class AudioParser(object):
@@ -105,6 +110,7 @@ class SpectrogramParser(AudioParser):
         if self.aug_conf and self.aug_conf.speed_volume_perturb:
             y = load_randomly_augmented_audio(audio_path, self.sample_rate)
         else:
+            # or y , sample_rate = load_audio_librosa(audio_path)
             y = load_audio(audio_path)
         if self.noise_injector:
             add_noise = np.random.binomial(1, self.aug_conf.noise_prob)
@@ -351,3 +357,74 @@ def load_randomly_augmented_audio(path, sample_rate=16000, tempo_range=(0.85, 1.
     audio = augment_audio_with_sox(path=path, sample_rate=sample_rate,
                                    tempo=tempo_value, gain=gain_value)
     return audio
+
+
+
+
+
+
+
+class DTWData(Dataset,SpectrogramParser):
+    def __init__(self,audio_conf: SpectConfig,
+                 train_csv=None,human_csv=None, train_dir=None, transform_wav=None,transform_spect=None):
+        self.train_df = pd.read_csv(train_csv)
+        self.human_df = pd.read_csv(human_csv)
+        self.train_dir = train_dir
+        self.transform_wav = transform_wav
+        self.transform_spect = transform_spect
+        
+        
+    def __getitem__(self, index):
+        # 3,4,5,7
+        TGT_path = os.path.join(self.train_dir, self.train_df.iloc[index].TGT_item)
+        OTH_path = os.path.join(self.train_dir, self.train_df.iloc[index].OTH_item)
+        X_path = os.path.join(self.train_dir, self.train_df.iloc[index].X_item)
+        #print('TGT', TGT_path)
+                
+        id_triplets = self.train_df.iloc[index].triplet_id
+       
+        value = self.human_df[self.human_df['triplet_id']==id_triplets].index.tolist()
+        labels_all =  [self.human_df.loc[x].user_ans for x in value]
+         #print('labels', labels_all)
+        dataset = self.human_df.loc[value[0]].dataset
+        
+        #compute sfft
+        
+        
+        TGT = self.parse_audio(TGT_path)
+        OTH = self.parse_audio(OTH_path)
+        X = self.parse_audio(X_path)
+        
+        # according to the dataset we take the average result of the humans
+        # We transform the labels so they are between 0 and 1 (0 is chance level for human, 1 is perfect score)
+        if dataset == 'WorldVowels' or dataset == 'zerospeech' :
+            labels_list= [float(x)/3. for x in labels_all]
+            #print(labels_list)
+            labels = np.mean(labels_list)
+            #print(labels)
+        else :
+            labels_list= [float(x) for x in labels_all]
+            labels = np.mean(labels_list)
+        return TGT, OTH, X, id_triplets,labels
+
+    def __len__(self):
+        return len(self.train_df)
+    
+def _collate_fn_dtw(batch):
+    data = [(item[0], item[1], item[2]) for item in batch]
+    id_triplets = [item[3] for item in batch]
+    labels = [item[4] for item in batch]
+    return data, id_triplets, labels
+    
+    
+class AudioDTWDataLoader(DataLoader):
+    def __init__(self, *args, **kwargs):
+        """
+        Creates a data loader for AudioDatasets.
+        """
+        super(AudioDataLoader, self).__init__(*args, **kwargs)
+        self.collate_fn = _collate_fn_dtw
+        
+        
+        
+    

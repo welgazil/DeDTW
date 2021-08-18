@@ -1,6 +1,6 @@
 import math
 from typing import List, Union
-
+import hydra
 import pytorch_lightning as pl
 import torch
 import torch.nn as nn
@@ -9,10 +9,12 @@ from omegaconf import OmegaConf
 from torch.cuda.amp import autocast
 from torch.nn import CTCLoss
 
-from deepspeech_pytorch.configs.train_config import SpectConfig, BiDirectionalConfig, OptimConfig, AdamConfig, \
-    SGDConfig, UniDirectionalConfig
-from deepspeech_pytorch.decoder import GreedyDecoder
-from deepspeech_pytorch.validation import CharErrorRate, WordErrorRate
+#from train_config import SpectConfig, BiDirectionalConfig, OptimConfig, AdamConfig, \
+ #  SGDConfig, UniDirectionalConfig
+#from deepspeech_pytorch.decoder import GreedyDecoder
+#from deepspeech_pytorch.validation import CharErrorRate, WordErrorRate
+from loss import DTWLoss
+
 
 
 class SequenceWise(nn.Module):
@@ -137,22 +139,19 @@ class Lookahead(nn.Module):
 
 class DeepSpeech(pl.LightningModule):
     def __init__(self,
-                 labels: List,
-                 model_cfg: Union[UniDirectionalConfig, BiDirectionalConfig],
-                 precision: int,
-                 optim_cfg: Union[AdamConfig, SGDConfig],
-                 spect_cfg: SpectConfig
+                # labels: List,
+                 
                  ):
         super().__init__()
-        self.save_hyperparameters()
-        self.model_cfg = model_cfg
-        self.precision = precision
-        self.optim_cfg = optim_cfg
-        self.spect_cfg = spect_cfg
-        self.bidirectional = True if OmegaConf.get_type(model_cfg) is BiDirectionalConfig else False
+     #   self.save_hyperparameters()
+       # self.model_cfg = model_cfg
+       # self.precision = precision
+        #self.optim_cfg = optim_cfg
+       # self.spect_cfg = spect_cfg
+       # self.bidirectional = True if OmegaConf.get_type(model_cfg) is BiDirectionalConfig else False
 
-        self.labels = labels
-        num_classes = len(self.labels)
+       # self.labels = labels
+       # num_classes = len(self.labels)
 
         self.conv = MaskConv(nn.Sequential(
             nn.Conv2d(1, 32, kernel_size=(41, 11), stride=(2, 2), padding=(20, 5)),
@@ -163,7 +162,7 @@ class DeepSpeech(pl.LightningModule):
             nn.Hardtanh(0, 20, inplace=True)
         ))
         # Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
-        rnn_input_size = int(math.floor((self.spect_cfg.sample_rate * self.spect_cfg.window_size) / 2) + 1)
+        rnn_input_size = int(math.floor((16000 * 0.02) / 2) + 1)
         rnn_input_size = int(math.floor(rnn_input_size + 2 * 20 - 41) / 2 + 1)
         rnn_input_size = int(math.floor(rnn_input_size + 2 * 10 - 21) / 2 + 1)
         rnn_input_size *= 32
@@ -171,45 +170,51 @@ class DeepSpeech(pl.LightningModule):
         self.rnns = nn.Sequential(
             BatchRNN(
                 input_size=rnn_input_size,
-                hidden_size=self.model_cfg.hidden_size,
-                rnn_type=self.model_cfg.rnn_type.value,
-                bidirectional=self.bidirectional,
+                hidden_size=1024,
+                rnn_type=nn.LSTM,
+                bidirectional=False,
                 batch_norm=False
             ),
             *(
                 BatchRNN(
-                    input_size=self.model_cfg.hidden_size,
-                    hidden_size=self.model_cfg.hidden_size,
-                    rnn_type=self.model_cfg.rnn_type.value,
-                    bidirectional=self.bidirectional
-                ) for x in range(self.model_cfg.hidden_layers - 1)
+                    input_size=1024,
+                    hidden_size=1024,
+                    rnn_type=nn.LSTM,
+                    bidirectional=False
+                ) for x in range(5 - 1)
             )
         )
 
         self.lookahead = nn.Sequential(
             # consider adding batch norm?
-            Lookahead(self.model_cfg.hidden_size, context=self.model_cfg.lookahead_context),
+            Lookahead(1024, context=20),
             nn.Hardtanh(0, 20, inplace=True)
-        ) if not self.bidirectional else None
+        ) 
 
-        fully_connected = nn.Sequential(
-            nn.BatchNorm1d(self.model_cfg.hidden_size),
-            nn.Linear(self.model_cfg.hidden_size, num_classes, bias=False)
-        )
-        self.fc = nn.Sequential(
-            SequenceWise(fully_connected),
-        )
+        
+        
+        #changer la metric et la loss
+        
         self.inference_softmax = InferenceBatchSoftmax()
-        self.criterion = CTCLoss(blank=self.labels.index('_'), reduction='sum', zero_infinity=True)
-        self.evaluation_decoder = GreedyDecoder(self.labels)  # Decoder used for validation
-        self.wer = WordErrorRate(
-            decoder=self.evaluation_decoder,
-            target_decoder=self.evaluation_decoder
-        )
-        self.cer = CharErrorRate(
-            decoder=self.evaluation_decoder,
-            target_decoder=self.evaluation_decoder
-        )
+        
+        
+        self.criterion = DTWLoss()
+        
+        #ajouter une metric de la même facon 
+      #  self.wer = WordErrorRate(
+        #    decoder=self.evaluation_decoder,
+         #   target_decoder=self.evaluation_decoder
+        #)
+        #self.cer = CharErrorRate(
+         #   decoder=self.evaluation_decoder,
+          #  target_decoder=self.evaluation_decoder
+        #)
+        
+   # def forward_once(self,x):
+        
+        
+        
+        
 
     def forward(self, x, lengths):
         lengths = lengths.cpu().int()
