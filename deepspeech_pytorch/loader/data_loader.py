@@ -423,7 +423,7 @@ class AudioDTWDataLoader(DataLoader):
         Creates a data loader for AudioDatasets.
         """
         super(AudioDataLoader, self).__init__(*args, **kwargs)
-        self.collate_fn = _collate_fn_dtw
+      #  self.collate_fn = _collate_fn_dtw
         
         
         

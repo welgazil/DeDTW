@@ -9,10 +9,10 @@ from omegaconf import OmegaConf
 from torch.cuda.amp import autocast
 from torch.nn import CTCLoss
 
-#from train_config import SpectConfig, BiDirectionalConfig, OptimConfig, AdamConfig, \
- #  SGDConfig, UniDirectionalConfig
-#from deepspeech_pytorch.decoder import GreedyDecoder
-#from deepspeech_pytorch.validation import CharErrorRate, WordErrorRate
+from train_config import SpectConfig, BiDirectionalConfig, OptimConfig, AdamConfig, \
+   SGDConfig, UniDirectionalConfig
+from deepspeech_pytorch.decoder import GreedyDecoder
+from deepspeech_pytorch.validation import CharErrorRate, WordErrorRate
 from loss import DTWLoss
 
 
@@ -139,16 +139,20 @@ class Lookahead(nn.Module):
 
 class DeepSpeech(pl.LightningModule):
     def __init__(self,
-                # labels: List,
+                 labels: List,
+                model_cfg: Union[UniDirectionalConfig, BiDirectionalConfig],
+                 precision: int,
+                 optim_cfg: Union[AdamConfig, SGDConfig],
+                 spect_cfg: SpectConfig
                  
                  ):
         super().__init__()
-     #   self.save_hyperparameters()
-       # self.model_cfg = model_cfg
-       # self.precision = precision
-        #self.optim_cfg = optim_cfg
-       # self.spect_cfg = spect_cfg
-       # self.bidirectional = True if OmegaConf.get_type(model_cfg) is BiDirectionalConfig else False
+        self.save_hyperparameters()
+        self.model_cfg = model_cfg
+        self.precision = precision
+        self.optim_cfg = optim_cfg
+        self.spect_cfg = spect_cfg
+        self.bidirectional = True if OmegaConf.get_type(model_cfg) is BiDirectionalConfig else False
 
        # self.labels = labels
        # num_classes = len(self.labels)
@@ -216,7 +220,8 @@ class DeepSpeech(pl.LightningModule):
         
         
 
-    def forward(self, x, lengths):
+    def forward_once(self, x):
+        lengths = torch.tensor(x.size(1))
         lengths = lengths.cpu().int()
         output_lengths = self.get_seq_lens(lengths)
         x, _ = self.conv(x, output_lengths)
@@ -236,38 +241,49 @@ class DeepSpeech(pl.LightningModule):
         # identity in training mode, softmax in eval mode
         x = self.inference_softmax(x)
         return x, output_lengths
+    
+    def forward(self,input1,input2,input3):
+        # forward pass of input 1
+        output1, _ = self.forward_once(input1)
+        # forward pass of input 2
+        output2, _ = self.forward_once(input2)
+        # forward pass of input 2
+        output3, _ = self.forward_once(input3)
+        
+        # ce que j'aurai pu faire ici c'est avoir 
+        # inputs, targets, input_percentages, target_sizes = batch
+        # où inputs rassemblent les trois triplets, puis les séparer ? 
+        
+        return output1,output2,output3 
 
     def training_step(self, batch, batch_idx):
-        inputs, targets, input_percentages, target_sizes = batch
-        input_sizes = input_percentages.mul_(int(inputs.size(3))).int()
-        out, output_sizes = self(inputs, input_sizes)
-        out = out.transpose(0, 1)  # TxNxH
-        out = out.log_softmax(-1)
+        data = batch
+        TGT, OTH, X = data[0], data[1], data[2]
+        id_triplets = data[3]
+        labels = data[4]
+        
+        output1,output2,output3 = self(TGT,OTH,X)
+        #out = out.transpose(0, 1)  # TxNxH
+        #out = out.log_softmax(-1)
 
-        loss = self.criterion(out, targets, output_sizes, target_sizes)
+        loss = self.criterion(output1,output2,output3,labels)
         return loss
 
     def validation_step(self, batch, batch_idx):
-        inputs, targets, input_percentages, target_sizes = batch
-        input_sizes = input_percentages.mul_(int(inputs.size(3))).int()
-        inputs = inputs.to(self.device)
-        with autocast(enabled=self.precision == 16):
-            out, output_sizes = self(inputs, input_sizes)
-        decoded_output, _ = self.evaluation_decoder.decode(out, output_sizes)
-        self.wer(
-            preds=out,
-            preds_sizes=output_sizes,
-            targets=targets,
-            target_sizes=target_sizes
-        )
-        self.cer(
-            preds=out,
-            preds_sizes=output_sizes,
-            targets=targets,
-            target_sizes=target_sizes
-        )
-        self.log('wer', self.wer.compute(), prog_bar=True, on_epoch=True)
-        self.log('cer', self.cer.compute(), prog_bar=True, on_epoch=True)
+        data = batch
+        TGT, OTH, X = data[0], data[1], data[2]
+        id_triplets = data[3]
+        labels = data[4]
+        
+        output1,output2,output3 = self(TGT,OTH,X)
+        #out = out.transpose(0, 1)  # TxNxH
+        #out = out.log_softmax(-1)
+
+        loss = self.criterion(output1,output2,output3,labels)
+        self.log('validation loss', loss, prog_bar=True, on_epoch=True)
+        
+        # ajouter un early stopping dans le trainer
+        
 
     def configure_optimizers(self):
         if OmegaConf.get_type(self.optim_cfg) is SGDConfig:
