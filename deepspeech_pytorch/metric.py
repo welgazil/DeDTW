@@ -9,7 +9,8 @@ Created on Wed Aug 18 18:07:07 2021
 from scipy import stats
 import numpy as np
 
-def get_correlation_values(human_answers, model_results, mode='pearson'):
+
+def get_correlation_values(human_answers, model_results, mode="pearson"):
     """
     :param human_answers: (list) list of human answers for each phone group (between -3 and 3 if not normalized)
     :param model_results: (list) list of delta values returned by the model (not normalized => normalized=False)
@@ -26,7 +27,7 @@ def get_correlation_values(human_answers, model_results, mode='pearson'):
         human_answers /= std_human_answers
         model_results /= std_model_results"""
 
-    if mode == 'pearson':
+    if mode == "pearson":
         return stats.pearsonr(model_results, human_answers)[0]
-    elif mode == 'spearman':
+    elif mode == "spearman":
         return stats.spearmanr(model_results, human_answers)[0]

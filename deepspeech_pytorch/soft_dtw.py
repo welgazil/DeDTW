@@ -9,8 +9,7 @@ import torch.nn as nn
 cos = nn.CosineSimilarity(dim=2, eps=1e-6)
 
 
-
-@jit(nopython = True)
+@jit(nopython=True)
 def compute_softdtw(D, gamma):
     N = D.shape[0]
     M = D.shape[1]
@@ -23,18 +22,18 @@ def compute_softdtw(D, gamma):
             r2 = -R[i, j - 1] / gamma
             rmax = max(max(r0, r1), r2)
             rsum = np.exp(r0 - rmax) + np.exp(r1 - rmax) + np.exp(r2 - rmax)
-            softmin = - gamma * (np.log(rsum) + rmax)
+            softmin = -gamma * (np.log(rsum) + rmax)
             R[i, j] = D[i - 1, j - 1] + softmin
     return R
 
 
-@jit(nopython = True)
+@jit(nopython=True)
 def compute_softdtw_backward(D_, R, gamma, bmi):
     N = D_.shape[0]
     M = D_.shape[1]
     D = np.zeros((N + 2, M + 2))
     E = np.zeros((N + 2, M + 2))
-    D[1:N + 1, 1:M + 1] = D_
+    D[1 : N + 1, 1 : M + 1] = D_
     E[-1, bmi + 1] = 1
     R[:, -1] = -1e8
     R[-1, :] = -1e8
@@ -49,7 +48,7 @@ def compute_softdtw_backward(D_, R, gamma, bmi):
             b = np.exp(b0)
             c = np.exp(c0)
             E[i, j] = E[i + 1, j] * a + E[i, j + 1] * b + E[i + 1, j + 1] * c
-    return E[1:N + 1, 1:M + 1]
+    return E[1 : N + 1, 1 : M + 1]
 
 
 class _SoftDTW(Function):
@@ -57,14 +56,14 @@ class _SoftDTW(Function):
     def forward(ctx, D, gamma, open_end):
         dev = D.device
         dtype = D.dtype
-        gamma = torch.Tensor([gamma]).to(dev).type(dtype) # dtype fixed
+        gamma = torch.Tensor([gamma]).to(dev).type(dtype)  # dtype fixed
         D_ = D.detach().cpu().numpy()
         g_ = gamma.item()
         R = torch.Tensor(compute_softdtw(D_, g_)).to(dev).type(dtype)
         N = D.shape[0]
         M = D.shape[1]
         if open_end:
-            row = R[-2, 1:M+1] / (N + torch.arange(1, M + 1).to(dev).type(dtype))
+            row = R[-2, 1 : M + 1] / (N + torch.arange(1, M + 1).to(dev).type(dtype))
             # R[-2, 1:M+1] /= (N + torch.arange(1, M + 1).to(dev).type(dtype)) # probably shouldn't change inplace
             res, best_match_index = torch.min(row, dim=0)
             best_match_index += 1
@@ -86,8 +85,9 @@ class _SoftDTW(Function):
         E = torch.Tensor(compute_softdtw_backward(D_, R_, g_, bmi_)).to(dev).type(dtype)
         return grad_output * E, None, None
 
+
 ## Added
-'''
+"""
 def calc_distance_matrices(xb, yb):
     batch_size = xb.size(0)
     n = xb.size(1)
@@ -97,21 +97,17 @@ def calc_distance_matrices(xb, yb):
         D[i] = calc_distance_matrix(xb[i], yb[i])
     return D
 
-'''
-
-
+"""
 
 
 class SoftDTW(torch.nn.Module):
-    def __init__(self, gamma=1.0, normalize=False, open_end=False, dist='euclidean'):
+    def __init__(self, gamma=1.0, normalize=False, open_end=False, dist="euclidean"):
         super(SoftDTW, self).__init__()
         self.normalize = normalize
         self.gamma = gamma
         self.open_end = open_end
         self.func_dtw = _SoftDTW.apply
         self.dist = dist
-
-
 
     def calc_distance_matrix(self, x, y):
         """ 2D dimensional distance matrix computation
@@ -121,16 +117,16 @@ class SoftDTW(torch.nn.Module):
         d = x.size(1)
         x = x.unsqueeze(1).expand(n, m, d)
         y = y.unsqueeze(0).expand(n, m, d)
-        
-        if self.dist == 'euclidean':
+
+        if self.dist == "euclidean":
             dist = torch.pow(x - y, 2).sum(2)
             print(dist.size())
-        elif self.dist == 'canberra':
+        elif self.dist == "canberra":
             dist = (torch.abs(x - y) / (torch.abs(x) + torch.abs(y) + 1e-8)).sum(2)
-        elif self.dist == 'l1':
+        elif self.dist == "l1":
             dist = torch.abs(x - y).sum(2)
-        elif self.dist == 'cosine':
-            dist = 1 - cos(x,y)
+        elif self.dist == "cosine":
+            dist = 1 - cos(x, y)
         else:
             raise KeyError(f"unknown distance metric: {self.dist}")
         return dist
@@ -152,11 +148,8 @@ class SoftDTW(torch.nn.Module):
             out_xx = self.func_dtw(D_xx, self.gamma, self.open_end)
             D_yy = self.calc_distance_matrix(y, y)
             out_yy = self.func_dtw(D_yy, self.gamma, self.open_end)
-            return out_xy - 1/2 * (out_xx + out_yy) # distance
+            return out_xy - 1 / 2 * (out_xx + out_yy)  # distance
         else:
             D_xy = self.calc_distance_matrix(x, y)
             out_xy = self.func_dtw(D_xy, self.gamma, self.open_end)
-            return out_xy # discrepancy
-   
-    
-    
+            return out_xy  # discrepancy

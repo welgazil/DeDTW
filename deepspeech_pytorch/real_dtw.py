@@ -20,6 +20,7 @@ from numpy import array, zeros, argmin, inf, ndim
 from scipy.spatial.distance import cdist
 import numpy as np
 
+
 def __kl_divergence(x, y):
     """ just the KL-div """
     pq = np.dot(x, np.log(y.transpose()))
@@ -36,10 +37,11 @@ def kl_divergence(x, y, thresholded=True, symmetrized=True, normalize=True):
      - normalize=True => normalize the inputs so that lines sum to one.
     """
     assert (x.dtype == np.float64 and y.dtype == np.float64) or (
-        x.dtype == np.float32 and y.dtype == np.float32)
-    x = x.reshape(1,-1)
-    y = y.reshape(1,-1)
-    assert (np.all(x.sum(1) != 0.) and np.all(y.sum(1) != 0.))
+        x.dtype == np.float32 and y.dtype == np.float32
+    )
+    x = x.reshape(1, -1)
+    y = y.reshape(1, -1)
+    assert np.all(x.sum(1) != 0.0) and np.all(y.sum(1) != 0.0)
     if thresholded:
         normalize = True
     if normalize:
@@ -55,6 +57,7 @@ def kl_divergence(x, y, thresholded=True, symmetrized=True, normalize=True):
     if symmetrized:
         res = 0.5 * res + 0.5 * __kl_divergence(y, x).transpose()
     return np.float64(res)
+
 
 def dtw(x, y, dist, warp=1):
     """
@@ -84,7 +87,7 @@ def dtw(x, y, dist, warp=1):
                 j_k = min(j + k, c - 1)
                 min_list += [D0[i_k, j], D0[i, j_k]]
             D1[i, j] += min(min_list)
-    if len(x)==1:
+    if len(x) == 1:
         path = zeros(len(y)), range(len(y))
     elif len(y) == 1:
         path = range(len(x)), zeros(len(x))
@@ -93,7 +96,7 @@ def dtw(x, y, dist, warp=1):
     return D1[-1, -1], C, D1, path
 
 
-def accelerated_dtw(x, y, dist, warp=1, norm_comput = False):
+def accelerated_dtw(x, y, dist, warp=1, norm_comput=False):
     """
     Computes Dynamic Time Warping (DTW) of two sequences in a faster way.
     Instead of iterating through each element and calculating each distance,
@@ -128,36 +131,35 @@ def accelerated_dtw(x, y, dist, warp=1, norm_comput = False):
         for j in range(c):
             min_list = [D0[i, j]]
             for k in range(1, warp + 1):
-                min_list += [D0[min(i + k, r - 1), j],
-                             D0[i, min(j + k, c - 1)]]
+                min_list += [D0[min(i + k, r - 1), j], D0[i, min(j + k, c - 1)]]
             D1[i, j] += min(min_list)
     if len(x) == 1:
         path = zeros(len(y)), range(len(y))
     elif len(y) == 1:
         path = range(len(x)), zeros(len(x))
-        
-    
+
     else:
         path = _traceback(D0)
 
     # computation normalization
     if norm_comput:
-        #print(D0)
+        # print(D0)
         norm, long = get_normalized_dtw(A, path)
     else:
         norm, long = 0, 1
     return D1[-1, -1], C, D1, path, norm, long
 
+
 def get_normalized_dtw(distance_matrix, path):
     values = []
     to_keep_x = []
-    to_keep_y =[]
+    to_keep_y = []
     on_x = False
     on_y = False
     last_x = -10
     last_y = -10
     for k in range(len(path[0])):
-        #print(to_keep_x, to_keep_y)
+        # print(to_keep_x, to_keep_y)
         x = path[0][k]
         y = path[1][k]
 
@@ -165,7 +167,7 @@ def get_normalized_dtw(distance_matrix, path):
             if on_y:
                 values.append(np.array(to_keep_y).mean())
                 on_y = False
-                to_keep_y = [distance_matrix[x,y]]
+                to_keep_y = [distance_matrix[x, y]]
             on_x = True
             to_keep_x.append(distance_matrix[x, y])
 
@@ -179,10 +181,10 @@ def get_normalized_dtw(distance_matrix, path):
 
         elif on_x:
             values.append(np.array(to_keep_x).mean())
-            to_keep_x = [distance_matrix[x,y]]
-            to_keep_y = [distance_matrix[x,y]]
+            to_keep_x = [distance_matrix[x, y]]
+            to_keep_y = [distance_matrix[x, y]]
             on_x = False
-            #values.append(distance_matrix[x, y])
+            # values.append(distance_matrix[x, y])
         elif on_y:
             values.append(np.array(to_keep_y).mean())
             to_keep_x = [distance_matrix[x, y]]
@@ -191,9 +193,9 @@ def get_normalized_dtw(distance_matrix, path):
         else:
             if to_keep_x != [] and to_keep_y != []:
                 values.append(np.array(to_keep_x).mean())
-                to_keep_x = [distance_matrix[x,y]]
-                to_keep_y = [distance_matrix[x,y]]
-            else: # initiatlisation
+                to_keep_x = [distance_matrix[x, y]]
+                to_keep_y = [distance_matrix[x, y]]
+            else:  # initiatlisation
                 to_keep_x = [distance_matrix[x, y]]
                 to_keep_y = [distance_matrix[x, y]]
         last_x = x
@@ -204,16 +206,16 @@ def get_normalized_dtw(distance_matrix, path):
         values.append(np.array(to_keep_x).mean())
     else:
         values.append(np.array(to_keep_x).mean())
-    #print('values', len(values), values)
+    # print('values', len(values), values)
     return np.array(values).sum(), len(values)
 
 
 def _traceback(D):
-    
+
     i, j = array(D.shape) - 2
     p, q = [i], [j]
     while (i > 0) or (j > 0):
-        tb = argmin((D[i, j], D[i, j+1], D[i+1, j]))
+        tb = argmin((D[i, j], D[i, j + 1], D[i + 1, j]))
         if tb == 0:
             i -= 1
             j -= 1
@@ -224,11 +226,9 @@ def _traceback(D):
         p.insert(0, i)
         q.insert(0, j)
     return array(p), array(q)
-    
-        
 
 
-def compute_dtw(x,y, dist_for_cdist, norm_div = False):
+def compute_dtw(x, y, dist_for_cdist, norm_div=False):
     """
     :param x:
     :param y: the two array must have the same number of columns (but the nb of lines can be different)
@@ -239,13 +239,12 @@ def compute_dtw(x,y, dist_for_cdist, norm_div = False):
     if 'kl', then instead of dtw with a distance, we use kl divergence
     :return: dtw distance between x and y
     """
-   
+
     if dist_for_cdist == "kl":
-        d = accelerated_dtw(x, y, dist = kl_divergence)[0]
+        d = accelerated_dtw(x, y, dist=kl_divergence)[0]
     else:
-        d = accelerated_dtw(x, y, dist = dist_for_cdist)[0]
+        d = accelerated_dtw(x, y, dist=dist_for_cdist)[0]
     if not norm_div:
         return d
     else:
-        return d/float(max(x.shape[0], y.shape[0]))
-        
+        return d / float(max(x.shape[0], y.shape[0]))

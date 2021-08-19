@@ -11,7 +11,6 @@ from deepspeech_pytorch.configs.train_config import GCSCheckpointConfig
 
 
 class CheckpointHandler(ModelCheckpoint):
-
     def __init__(self, cfg: ModelCheckpointConf):
         super().__init__(
             dirpath=cfg.dirpath,
@@ -23,7 +22,7 @@ class CheckpointHandler(ModelCheckpoint):
             save_weights_only=cfg.save_weights_only,
             mode=cfg.mode,
             period=cfg.period,
-            prefix=cfg.prefix
+            prefix=cfg.prefix,
         )
 
     def find_latest_checkpoint(self):
@@ -31,14 +30,13 @@ class CheckpointHandler(ModelCheckpoint):
 
 
 class FileCheckpointHandler(CheckpointHandler):
-
     def find_latest_checkpoint(self):
         """
         Finds the latest checkpoint in a folder based on the timestamp of the file.
         If there are no checkpoints, returns None.
         :return: The latest checkpoint path, or None if no checkpoints are found.
         """
-        paths = list(Path(self.dirpath).rglob(self.prefix + '*'))
+        paths = list(Path(self.dirpath).rglob(self.prefix + "*"))
         if paths:
             paths.sort(key=os.path.getctime)
             latest_checkpoint_path = paths[-1]
@@ -84,6 +82,10 @@ class GCSCheckpointHandler(CheckpointHandler):
             self._save_file_to_gcs(filepath, self.save_weights_only)
 
     def _save_file_to_gcs(self, model_path):
-        tqdm.write(f"Saving model to gs://{self.gcs_bucket}/{self.gcs_save_folder}/{self.filename}{self.FILE_EXTENSION}")
-        blob = self.bucket.blob(f"{self.gcs_save_folder}/{self.filename}{self.FILE_EXTENSION}")
+        tqdm.write(
+            f"Saving model to gs://{self.gcs_bucket}/{self.gcs_save_folder}/{self.filename}{self.FILE_EXTENSION}"
+        )
+        blob = self.bucket.blob(
+            f"{self.gcs_save_folder}/{self.filename}{self.FILE_EXTENSION}"
+        )
         blob.upload_from_filename(model_path)

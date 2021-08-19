@@ -9,12 +9,17 @@ from omegaconf import OmegaConf
 from torch.cuda.amp import autocast
 from torch.nn import CTCLoss
 
-from train_config import SpectConfig, BiDirectionalConfig, OptimConfig, AdamConfig, \
-   SGDConfig, UniDirectionalConfig
+from train_config import (
+    SpectConfig,
+    BiDirectionalConfig,
+    OptimConfig,
+    AdamConfig,
+    SGDConfig,
+    UniDirectionalConfig,
+)
 from deepspeech_pytorch.decoder import GreedyDecoder
 from deepspeech_pytorch.validation import CharErrorRate, WordErrorRate
 from loss import DTWLoss
-
 
 
 class SequenceWise(nn.Module):
@@ -35,9 +40,9 @@ class SequenceWise(nn.Module):
         return x
 
     def __repr__(self):
-        tmpstr = self.__class__.__name__ + ' (\n'
+        tmpstr = self.__class__.__name__ + " (\n"
         tmpstr += self.module.__repr__()
-        tmpstr += ')'
+        tmpstr += ")"
         return tmpstr
 
 
@@ -80,14 +85,27 @@ class InferenceBatchSoftmax(nn.Module):
 
 
 class BatchRNN(nn.Module):
-    def __init__(self, input_size, hidden_size, rnn_type=nn.LSTM, bidirectional=False, batch_norm=True):
+    def __init__(
+        self,
+        input_size,
+        hidden_size,
+        rnn_type=nn.LSTM,
+        bidirectional=False,
+        batch_norm=True,
+    ):
         super(BatchRNN, self).__init__()
         self.input_size = input_size
         self.hidden_size = hidden_size
         self.bidirectional = bidirectional
-        self.batch_norm = SequenceWise(nn.BatchNorm1d(input_size)) if batch_norm else None
-        self.rnn = rnn_type(input_size=input_size, hidden_size=hidden_size,
-                            bidirectional=bidirectional, bias=True)
+        self.batch_norm = (
+            SequenceWise(nn.BatchNorm1d(input_size)) if batch_norm else None
+        )
+        self.rnn = rnn_type(
+            input_size=input_size,
+            hidden_size=hidden_size,
+            bidirectional=bidirectional,
+            bias=True,
+        )
         self.num_directions = 2 if bidirectional else 1
 
     def flatten_parameters(self):
@@ -100,7 +118,11 @@ class BatchRNN(nn.Module):
         x, h = self.rnn(x)
         x, _ = nn.utils.rnn.pad_packed_sequence(x)
         if self.bidirectional:
-            x = x.view(x.size(0), x.size(1), 2, -1).sum(2).view(x.size(0), x.size(1), -1)  # (TxNxH*2) -> (TxNxH) by sum
+            x = (
+                x.view(x.size(0), x.size(1), 2, -1)
+                .sum(2)
+                .view(x.size(0), x.size(1), -1)
+            )  # (TxNxH*2) -> (TxNxH) by sum
         return x
 
 
@@ -121,7 +143,7 @@ class Lookahead(nn.Module):
             stride=1,
             groups=self.n_features,
             padding=0,
-            bias=False
+            bias=False,
         )
 
     def forward(self, x):
@@ -132,39 +154,45 @@ class Lookahead(nn.Module):
         return x
 
     def __repr__(self):
-        return self.__class__.__name__ + '(' \
-               + 'n_features=' + str(self.n_features) \
-               + ', context=' + str(self.context) + ')'
+        return (
+            self.__class__.__name__
+            + "("
+            + "n_features="
+            + str(self.n_features)
+            + ", context="
+            + str(self.context)
+            + ")"
+        )
 
 
 class DeepSpeech(pl.LightningModule):
-    def __init__(self,
-                 labels: List,
-                model_cfg: Union[UniDirectionalConfig, BiDirectionalConfig],
-                 precision: int,
-                 optim_cfg: Union[AdamConfig, SGDConfig],
-                 spect_cfg: SpectConfig
-                 
-                 ):
+    def __init__(
+        self,
+        model_cfg: Union[UniDirectionalConfig, BiDirectionalConfig],
+        precision: int,
+        optim_cfg: Union[AdamConfig, SGDConfig],
+        spect_cfg: SpectConfig,
+    ):
         super().__init__()
         self.save_hyperparameters()
         self.model_cfg = model_cfg
         self.precision = precision
         self.optim_cfg = optim_cfg
         self.spect_cfg = spect_cfg
-        self.bidirectional = True if OmegaConf.get_type(model_cfg) is BiDirectionalConfig else False
+        self.bidirectional = (
+            True if OmegaConf.get_type(model_cfg) is BiDirectionalConfig else False
+        )
 
-       # self.labels = labels
-       # num_classes = len(self.labels)
-
-        self.conv = MaskConv(nn.Sequential(
-            nn.Conv2d(1, 32, kernel_size=(41, 11), stride=(2, 2), padding=(20, 5)),
-            nn.BatchNorm2d(32),
-            nn.Hardtanh(0, 20, inplace=True),
-            nn.Conv2d(32, 32, kernel_size=(21, 11), stride=(2, 1), padding=(10, 5)),
-            nn.BatchNorm2d(32),
-            nn.Hardtanh(0, 20, inplace=True)
-        ))
+        self.conv = MaskConv(
+            nn.Sequential(
+                nn.Conv2d(1, 32, kernel_size=(41, 11), stride=(2, 2), padding=(20, 5)),
+                nn.BatchNorm2d(32),
+                nn.Hardtanh(0, 20, inplace=True),
+                nn.Conv2d(32, 32, kernel_size=(21, 11), stride=(2, 1), padding=(10, 5)),
+                nn.BatchNorm2d(32),
+                nn.Hardtanh(0, 20, inplace=True),
+            )
+        )
         # Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
         rnn_input_size = int(math.floor((16000 * 0.02) / 2) + 1)
         rnn_input_size = int(math.floor(rnn_input_size + 2 * 20 - 41) / 2 + 1)
@@ -177,48 +205,30 @@ class DeepSpeech(pl.LightningModule):
                 hidden_size=1024,
                 rnn_type=nn.LSTM,
                 bidirectional=False,
-                batch_norm=False
+                batch_norm=False,
             ),
             *(
                 BatchRNN(
                     input_size=1024,
                     hidden_size=1024,
                     rnn_type=nn.LSTM,
-                    bidirectional=False
-                ) for x in range(5 - 1)
+                    bidirectional=False,
+                )
+                for x in range(5 - 1)
             )
         )
 
         self.lookahead = nn.Sequential(
             # consider adding batch norm?
             Lookahead(1024, context=20),
-            nn.Hardtanh(0, 20, inplace=True)
-        ) 
+            nn.Hardtanh(0, 20, inplace=True),
+        )
 
-        
-        
-        #changer la metric et la loss
-        
+        # changer la metric et la loss
+
         self.inference_softmax = InferenceBatchSoftmax()
-        
-        
+
         self.criterion = DTWLoss()
-        
-        #ajouter une metric de la même facon 
-      #  self.wer = WordErrorRate(
-        #    decoder=self.evaluation_decoder,
-         #   target_decoder=self.evaluation_decoder
-        #)
-        #self.cer = CharErrorRate(
-         #   decoder=self.evaluation_decoder,
-          #  target_decoder=self.evaluation_decoder
-        #)
-        
-   # def forward_once(self,x):
-        
-        
-        
-        
 
     def forward_once(self, x):
         lengths = torch.tensor(x.size(1))
@@ -227,7 +237,9 @@ class DeepSpeech(pl.LightningModule):
         x, _ = self.conv(x, output_lengths)
 
         sizes = x.size()
-        x = x.view(sizes[0], sizes[1] * sizes[2], sizes[3])  # Collapse feature dimension
+        x = x.view(
+            sizes[0], sizes[1] * sizes[2], sizes[3]
+        )  # Collapse feature dimension
         x = x.transpose(1, 2).transpose(0, 1).contiguous()  # TxNxH
 
         for rnn in self.rnns:
@@ -241,32 +253,32 @@ class DeepSpeech(pl.LightningModule):
         # identity in training mode, softmax in eval mode
         x = self.inference_softmax(x)
         return x, output_lengths
-    
-    def forward(self,input1,input2,input3):
+
+    def forward(self, input1, input2, input3):
         # forward pass of input 1
         output1, _ = self.forward_once(input1)
         # forward pass of input 2
         output2, _ = self.forward_once(input2)
         # forward pass of input 2
         output3, _ = self.forward_once(input3)
-        
-        # ce que j'aurai pu faire ici c'est avoir 
+
+        # ce que j'aurai pu faire ici c'est avoir
         # inputs, targets, input_percentages, target_sizes = batch
-        # où inputs rassemblent les trois triplets, puis les séparer ? 
-        
-        return output1,output2,output3 
+        # où inputs rassemblent les trois triplets, puis les séparer ?
+
+        return output1, output2, output3
 
     def training_step(self, batch, batch_idx):
         data = batch
         TGT, OTH, X = data[0], data[1], data[2]
         id_triplets = data[3]
         labels = data[4]
-        
-        output1,output2,output3 = self(TGT,OTH,X)
-        #out = out.transpose(0, 1)  # TxNxH
-        #out = out.log_softmax(-1)
 
-        loss = self.criterion(output1,output2,output3,labels)
+        output1, output2, output3 = self(TGT, OTH, X)
+        # out = out.transpose(0, 1)  # TxNxH
+        # out = out.log_softmax(-1)
+
+        loss = self.criterion(output1, output2, output3, labels)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -274,16 +286,15 @@ class DeepSpeech(pl.LightningModule):
         TGT, OTH, X = data[0], data[1], data[2]
         id_triplets = data[3]
         labels = data[4]
-        
-        output1,output2,output3 = self(TGT,OTH,X)
-        #out = out.transpose(0, 1)  # TxNxH
-        #out = out.log_softmax(-1)
 
-        loss = self.criterion(output1,output2,output3,labels)
-        self.log('validation loss', loss, prog_bar=True, on_epoch=True)
-        
+        output1, output2, output3 = self(TGT, OTH, X)
+        # out = out.transpose(0, 1)  # TxNxH
+        # out = out.log_softmax(-1)
+
+        val_loss = self.criterion(output1, output2, output3, labels)
+        self.log("val_loss", val_loss, prog_bar=True, on_epoch=True)
+
         # ajouter un early stopping dans le trainer
-        
 
     def configure_optimizers(self):
         if OmegaConf.get_type(self.optim_cfg) is SGDConfig:
@@ -292,7 +303,7 @@ class DeepSpeech(pl.LightningModule):
                 lr=self.optim_cfg.learning_rate,
                 momentum=self.optim_cfg.momentum,
                 nesterov=True,
-                weight_decay=self.optim_cfg.weight_decay
+                weight_decay=self.optim_cfg.weight_decay,
             )
         elif OmegaConf.get_type(self.optim_cfg) is AdamConfig:
             optimizer = torch.optim.AdamW(
@@ -300,14 +311,13 @@ class DeepSpeech(pl.LightningModule):
                 lr=self.optim_cfg.learning_rate,
                 betas=self.optim_cfg.betas,
                 eps=self.optim_cfg.eps,
-                weight_decay=self.optim_cfg.weight_decay
+                weight_decay=self.optim_cfg.weight_decay,
             )
         else:
             raise ValueError("Optimizer has not been specified correctly.")
 
         scheduler = torch.optim.lr_scheduler.ExponentialLR(
-            optimizer=optimizer,
-            gamma=self.optim_cfg.learning_anneal
+            optimizer=optimizer, gamma=self.optim_cfg.learning_anneal
         )
         return [optimizer], [scheduler]
 
@@ -321,5 +331,10 @@ class DeepSpeech(pl.LightningModule):
         seq_len = input_length
         for m in self.conv.modules():
             if type(m) == nn.modules.conv.Conv2d:
-                seq_len = ((seq_len + 2 * m.padding[1] - m.dilation[1] * (m.kernel_size[1] - 1) - 1) // m.stride[1] + 1)
+                seq_len = (
+                    seq_len
+                    + 2 * m.padding[1]
+                    - m.dilation[1] * (m.kernel_size[1] - 1)
+                    - 1
+                ) // m.stride[1] + 1
         return seq_len.int()

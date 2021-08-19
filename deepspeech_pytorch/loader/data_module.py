@@ -70,6 +70,7 @@ class DeepSpeechDataModule(pl.LightningDataModule):
     def __init__(self,
                  
                  dataD_cfg: DTWDataConfig,
+                 is_distributed : bool
                  
                  ):
         super().__init__()
@@ -82,6 +83,7 @@ class DeepSpeechDataModule(pl.LightningDataModule):
         self.train_dir = to_absolute_path(dataD_cfg.train_dir)
         self.data_cfg = dataD_cfg
         self.spect_cfg = dataD_cfg.spect
+        self.is_distributed = is_distributed
         
     def train_dataloader(self):
         train_dataset = self._create_dataset(self.train_csv,self.human_train_csv)

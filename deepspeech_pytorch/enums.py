@@ -4,15 +4,15 @@ from torch import nn
 
 
 class DecoderType(Enum):
-    greedy: str = 'greedy'
-    beam: str = 'beam'
+    greedy: str = "greedy"
+    beam: str = "beam"
 
 
 class SpectrogramWindow(Enum):
-    hamming = 'hamming'
-    hann = 'hann'
-    blackman = 'blackman'
-    bartlett = 'bartlett'
+    hamming = "hamming"
+    hann = "hann"
+    blackman = "blackman"
+    bartlett = "bartlett"
 
 
 class RNNType(Enum):

@@ -13,21 +13,20 @@ def check_loss(loss, loss_value):
     :return: Return if loss is valid, and the error in case it is not
     """
     loss_valid = True
-    error = ''
+    error = ""
     if loss_value == float("inf") or loss_value == float("-inf"):
         loss_valid = False
         error = "WARNING: received an inf loss"
     elif torch.isnan(loss).sum() > 0:
         loss_valid = False
-        error = 'WARNING: received a nan loss, setting loss value to 0'
+        error = "WARNING: received a nan loss, setting loss value to 0"
     elif loss_value < 0:
         loss_valid = False
         error = "WARNING: received a negative loss"
     return loss_valid, error
 
 
-def load_model(device,
-               model_path):
+def load_model(device, model_path):
     model = DeepSpeech.load_from_checkpoint(hydra.utils.to_absolute_path(model_path))
     model.eval()
     model = model.to(device)
@@ -37,20 +36,22 @@ def load_model(device,
 def load_decoder(labels, cfg: LMConfig):
     if cfg.decoder_type == DecoderType.beam:
         from deepspeech_pytorch.decoder import BeamCTCDecoder
+
         if cfg.lm_path:
             cfg.lm_path = hydra.utils.to_absolute_path(cfg.lm_path)
-        decoder = BeamCTCDecoder(labels=labels,
-                                 lm_path=cfg.lm_path,
-                                 alpha=cfg.alpha,
-                                 beta=cfg.beta,
-                                 cutoff_top_n=cfg.cutoff_top_n,
-                                 cutoff_prob=cfg.cutoff_prob,
-                                 beam_width=cfg.beam_width,
-                                 num_processes=cfg.lm_workers,
-                                 blank_index=labels.index('_'))
+        decoder = BeamCTCDecoder(
+            labels=labels,
+            lm_path=cfg.lm_path,
+            alpha=cfg.alpha,
+            beta=cfg.beta,
+            cutoff_top_n=cfg.cutoff_top_n,
+            cutoff_prob=cfg.cutoff_prob,
+            beam_width=cfg.beam_width,
+            num_processes=cfg.lm_workers,
+            blank_index=labels.index("_"),
+        )
     else:
-        decoder = GreedyDecoder(labels=labels,
-                                blank_index=labels.index('_'))
+        decoder = GreedyDecoder(labels=labels, blank_index=labels.index("_"))
     return decoder
 
 

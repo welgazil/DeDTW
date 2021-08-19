@@ -42,6 +42,15 @@ class EvalConfig(InferenceConfig):
     save_output: str = ''  # Saves output of model from test to this file_path
     batch_size: int = 20  # Batch size for testing
     num_workers: int = 4
+    
+@dataclass
+class EvalDTWConfig(InferenceConfig):
+    test_path: str = ''  # Path to validation manifest csv or folder
+    human_test_csv: str = '' # Path to human test csv 
+    verbose: bool = True  # Print out decoded output and error of each sample
+    save_output: str = ''  # Saves output of model from test to this file_path
+    batch_size: int = 20  # Batch size for testing
+    num_workers: int = 4
 
 
 @dataclass
