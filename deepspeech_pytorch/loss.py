@@ -11,25 +11,42 @@ import torch
 import torch.nn as nn
 
 # import torch.nn.functional as F
-from soft_dtw import SoftDTW
+from deepspeech_pytorch.soft_dtw import SoftDTW
 
-# rajoutez des paramètres éventuellements
-criterion = nn.MSELoss()
+from deepspeech_pytorch.gauss import distcos
 
 
-class DTWLoss(nn.Module):
-    def __init__(self):
-        super(DTWLoss, self).__init__()
+class DTWLosslabels(nn.Module):
+    def __init__(self, representation):
+        super(DTWLosslabels, self).__init__()
         self.sdtw = SoftDTW(gamma=1.0, normalize=True, dist="cosine")
+        self.criterion = nn.MSELoss()
+        self.representation = representation
 
     def forward(self, TGT, OTH, X, labels):
         TGT, OTH, X = TGT.to(torch.float32), OTH.to(torch.float32), X.to(torch.float32)
-        #  print(labels)
         labels = torch.as_tensor(labels[0], dtype=torch.float)
+        if self.representation == "gauss":
+            loss = self.criterion(distcos(OTH, X) - distcos(TGT, X), labels)
+        else:
+            loss = self.criterion(self.sdtw(OTH, X) - self.sdtw(TGT, X), labels)
+        return loss
 
-        # loss = self.sdtw(TGT,X) - self.sdtw(OTH,X)
-        loss = criterion(
-            self.sdtw(TGT, X) - self.sdtw(OTH, X), labels
-        )  # it is ok to put it this way because we want to minimize this
+
+class DTWLosswithoutlabels(nn.Module):
+    def __init__(self, representation):
+        super(DTWLosswithoutlabels, self).__init__()
+        self.sdtw = SoftDTW(gamma=1.0, normalize=True, dist="cosine")
+        self.representation = representation
+
+    def forward(self, TGT, OTH, X, labels):
+        TGT, OTH, X = TGT.to(torch.float32), OTH.to(torch.float32), X.to(torch.float32)
+        # labels = torch.as_tensor(labels[0], dtype=torch.float)
+        if self.representation == "gauss":
+            loss = distcos(TGT, X) - distcos(OTH, X)
+        else:
+            loss = self.sdtw(TGT, X) - self.sdtw(
+                OTH, X
+            )  # it is ok to put it this way because we want to minimize this
         # otherwise, the delta value is the other way around
         return loss

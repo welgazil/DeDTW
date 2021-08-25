@@ -39,21 +39,22 @@ import librosa.display
 import numpy as np
 import random
 import matplotlib
-matplotlib.use('Agg')
+
+matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from .sparse_image_warp import sparse_image_warp
 import torch
 
 
 def time_warp(spec, W=5):
-    num_rows = spec.shape[1]
-    spec_len = spec.shape[2]
+    num_rows = spec.shape[0]
+    spec_len = spec.shape[1]
 
     y = num_rows // 2
     horizontal_line_at_ctr = spec[0][y]
     # assert len(horizontal_line_at_ctr) == spec_len
 
-    point_to_warp = horizontal_line_at_ctr[random.randrange(W, spec_len-W)]
+    point_to_warp = horizontal_line_at_ctr[random.randrange(W, spec_len - W)]
     # assert isinstance(point_to_warp, torch.Tensor)
 
     # Uniform distribution from (0,W) with chance to be up to W negative
@@ -65,8 +66,14 @@ def time_warp(spec, W=5):
     return warped_spectro.squeeze(3)
 
 
-def spec_augment(mel_spectrogram, time_warping_para=40, frequency_masking_para=27,
-                 time_masking_para=70, frequency_mask_num=1, time_mask_num=1):
+def spec_augment(
+    mel_spectrogram,
+    time_warping_para=40,
+    frequency_masking_para=27,
+    time_masking_para=70,
+    frequency_mask_num=1,
+    time_mask_num=1,
+):
     """Spec augmentation Calculation Function.
     'SpecAugment' have 3 steps for audio data augmentation.
     first step is time warping using Tensorflow's image_sparse_warp function.
@@ -100,8 +107,8 @@ def spec_augment(mel_spectrogram, time_warping_para=40, frequency_masking_para=2
         f = int(f)
         if v - f < 0:
             continue
-        f0 = random.randint(0, v-f)
-        warped_mel_spectrogram[:, f0:f0+f, :] = 0
+        f0 = random.randint(0, v - f)
+        warped_mel_spectrogram[:, f0 : f0 + f, :] = 0
 
     # Step 3 : Time masking
     for i in range(time_mask_num):
@@ -109,8 +116,8 @@ def spec_augment(mel_spectrogram, time_warping_para=40, frequency_masking_para=2
         t = int(t)
         if tau - t < 0:
             continue
-        t0 = random.randint(0, tau-t)
-        warped_mel_spectrogram[:, :, t0:t0+t] = 0
+        t0 = random.randint(0, tau - t)
+        warped_mel_spectrogram[:, :, t0 : t0 + t] = 0
 
     return warped_mel_spectrogram.squeeze()
 
@@ -123,7 +130,12 @@ def visualization_spectrogram(mel_spectrogram, title):
     """
     # Show mel-spectrogram using librosa's specshow.
     plt.figure(figsize=(10, 4))
-    librosa.display.specshow(librosa.power_to_db(mel_spectrogram[0, :, :], ref=np.max), y_axis='mel', fmax=8000, x_axis='time')
+    librosa.display.specshow(
+        librosa.power_to_db(mel_spectrogram[0, :, :], ref=np.max),
+        y_axis="mel",
+        fmax=8000,
+        x_axis="time",
+    )
     # plt.colorbar(format='%+2.0f dB')
     plt.title(title)
     plt.tight_layout()

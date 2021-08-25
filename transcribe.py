@@ -13,5 +13,5 @@ def hydra_main(cfg: TranscribeConfig):
     transcribe(cfg=cfg)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     hydra_main()

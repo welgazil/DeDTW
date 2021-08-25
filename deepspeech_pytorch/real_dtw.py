@@ -22,14 +22,14 @@ import numpy as np
 
 
 def __kl_divergence(x, y):
-    """ just the KL-div """
+    """just the KL-div"""
     pq = np.dot(x, np.log(y.transpose()))
     pp = np.tile(np.sum(x * np.log(x), axis=1).reshape(x.shape[0], 1), (1, y.shape[0]))
     return pp - pq
 
 
 def kl_divergence(x, y, thresholded=True, symmetrized=True, normalize=True):
-    """ Kullback-Leibler divergence
+    """Kullback-Leibler divergence
     x and y should be 2D numpy arrays with "times" on the lines and "features" on the columns
      - thresholded=True => means we add an epsilon to all the dimensions/values
                            AND renormalize inputs.

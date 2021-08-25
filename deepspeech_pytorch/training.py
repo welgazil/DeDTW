@@ -67,10 +67,12 @@ def trainDTW(cfg: DeepSpeechConfig):
                 cfg.trainer.resume_from_checkpoint = resume_from_checkpoint
 
     data_loader = DeepSpeechDataModule(
-        dataD_cfg=cfg.data, is_distributed=cfg.trainer.gpus > 1
+        dataD_cfg=cfg.data,
+        is_distributed=cfg.trainer.gpus > 1,
     )
 
     model = DeepSpeech(
+        dataD_cfg=cfg.data,
         model_cfg=cfg.model,
         optim_cfg=cfg.optim,
         precision=cfg.trainer.precision,

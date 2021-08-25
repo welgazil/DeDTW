@@ -3,9 +3,15 @@ import torch
 
 from deepspeech_pytorch.configs.inference_config import EvalDTWConfig
 from deepspeech_pytorch.decoder import GreedyDecoder
-from deepspeech_pytorch.loader.data_loader import SpectrogramDataset, AudioDataLoader
+from deepspeech_pytorch.configs.train_config import DataConfig, DTWDataConfig
+from deepspeech_pytorch.loader.data_loader import (
+    SpectrogramDataset,
+    AudioDTWDataLoader,
+    DTWData,
+)
 from deepspeech_pytorch.utils import load_model, load_decoder
 from deepspeech_pytorch.validation import run_evaluation, run_evaluationdtw
+from torch.utils.data import ConcatDataset
 
 
 @torch.no_grad()
@@ -14,12 +20,27 @@ def evaluate(cfg: EvalDTWConfig):
 
     model = load_model(device=device, model_path=cfg.model.model_path)
 
-    test_dataset = SpectrogramDataset(
+    test_dataset = DTWData(
         audio_conf=model.spect_cfg,
         train_csv=hydra.utils.to_absolute_path(cfg.test_path),
         human_csv=hydra.utils.to_absolute_path(cfg.human_test_csv),
+        train_dir=hydra.utils.to_absolute_path(cfg.train_dir),
+        aug_cfg=None,
     )
-    test_loader = AudioDataLoader(
+
+    # if cfg.augmentation and cfg.augmentation.gaussian_noise:
+
+    #        dataset_gaussian_noise = DTWData(
+    #               audio_conf=model.spect_cfg,
+    #              train_csv=hydra.utils.to_absolute_path(cfg.test_path),
+    #             human_csv=hydra.utils.to_absolute_path(cfg.human_test_csv),
+    #            train_dir=hydra.utils.to_absolute_path(cfg.train_dir),
+    #           aug_cfg = cfg.augmentation,
+
+    #          )
+    #  test_dataset = ConcatDataset([test_dataset,dataset_gaussian_noise])
+
+    test_loader = AudioDTWDataLoader(
         test_dataset, batch_size=cfg.batch_size, num_workers=cfg.num_workers
     )
 
@@ -29,6 +50,7 @@ def evaluate(cfg: EvalDTWConfig):
         device=device,
         model=model,
         precision=cfg.model.precision,
+        representation=cfg.representation,
     )
 
     print(

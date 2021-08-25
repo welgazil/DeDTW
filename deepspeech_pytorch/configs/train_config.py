@@ -7,56 +7,61 @@ from omegaconf import MISSING
 
 from deepspeech_pytorch.enums import SpectrogramWindow, RNNType
 
-defaults = [
-    {"optim": "adam"},
-    {"model": "bidirectional"},
-    {"checkpoint": "file"}
-]
+defaults = [{"optim": "adam"}, {"model": "bidirectional"}, {"checkpoint": "file"}]
 
 
 @dataclass
 class SpectConfig:
     sample_rate: int = 16000  # The sample rate for the data/model features
-    window_size: float = .02  # Window size for spectrogram generation (seconds)
-    window_stride: float = .01  # Window stride for spectrogram generation (seconds)
-    window: SpectrogramWindow = SpectrogramWindow.hamming  # Window type for spectrogram generation
+    window_size: float = 0.02  # Window size for spectrogram generation (seconds)
+    window_stride: float = 0.01  # Window stride for spectrogram generation (seconds)
+    window: SpectrogramWindow = (
+        SpectrogramWindow.hamming
+    )  # Window type for spectrogram generation
 
 
 @dataclass
 class AugmentationConfig:
     speed_volume_perturb: bool = False  # Use random tempo and gain perturbations.
     spec_augment: bool = False  # Use simple spectral augmentation on mel spectograms.
-    noise_dir: str = ''  # Directory to inject noise into audio. If default, noise Inject not added
+    noise_dir: str = (
+        ""  # Directory to inject noise into audio. If default, noise Inject not added
+    )
     noise_prob: float = 0.4  # Probability of noise being added per sample
     noise_min: float = 0.0  # Minimum noise level to sample from. (1.0 means all noise, not original signal)
     noise_max: float = 0.5  # Maximum noise levels to sample from. Maximum 1.0
+    noise_levels: tuple = (0, 0.5)
+    gaussian_noise: bool = True
 
 
 @dataclass
 class DataConfig:
-    train_path: str = 'data/train_manifest.csv'
-    val_path: str = 'data/val_manifest.csv'
+    train_path: str = "data/train_manifest.csv"
+    val_path: str = "data/val_manifest.csv"
     batch_size: int = 64  # Batch size for training
     num_workers: int = 4  # Number of workers used in data-loading
-    labels_path: str = 'labels.json'  # Contains tokens for model output
+    labels_path: str = "labels.json"  # Contains tokens for model output
     spect: SpectConfig = SpectConfig()
     augmentation: AugmentationConfig = AugmentationConfig()
-    
+
+
 @dataclass
 class DTWDataConfig:
-    train_csv: str = 'data/train_manifest.csv'
-    human_train_csv: str = 'data/val_manifest.csv'
-    test_csv: str = './'
-    human_test_csv: str= './'
-    val_csv: str = './'
-    human_val_csv: str= './'
-    train_dir: str = './'
-    transform_wav: bool = False 
-    transform_spect: bool = False
+    train_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/train_triplets_all.csv"
+    human_train_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_human_experimental_data.csv"
+    test_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/test_triplets_all.csv"
+    human_test_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_human_experimental_data.csv"
+    val_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/valid_triplets_all.csv"
+    human_val_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_human_experimental_data.csv"
+    train_dir: str = (
+        "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/Perceptimatic/wavs_extracted"
+    )
     batch_size: int = 1  # Batch size for training
-    num_workers: int = 4  # Number of workers used in data-loading
+    num_workers: int = 2  # Number of workers used in data-loading
     spect: SpectConfig = SpectConfig()
     augmentation: AugmentationConfig = AugmentationConfig()
+    representation: str = "gauss"
+    labels: str = "with"
 
 
 @dataclass
@@ -68,7 +73,9 @@ class BiDirectionalConfig:
 
 @dataclass
 class UniDirectionalConfig(BiDirectionalConfig):
-    lookahead_context: int = 20  # The lookahead context for convolution after RNN layers
+    lookahead_context: int = (
+        20  # The lookahead context for convolution after RNN layers
+    )
 
 
 @dataclass
@@ -92,7 +99,9 @@ class AdamConfig(OptimConfig):
 @dataclass
 class GCSCheckpointConfig(ModelCheckpointConf):
     gcs_bucket: str = MISSING  # Bucket to store model checkpoints e.g bucket-name
-    gcs_save_folder: str = MISSING  # Folder to store model checkpoints in bucket e.g models/
+    gcs_save_folder: str = (
+        MISSING  # Folder to store model checkpoints in bucket e.g models/
+    )
 
 
 @dataclass
@@ -107,7 +116,9 @@ class DeepSpeechConfig:
     model: Any = MISSING
     checkpoint: ModelCheckpointConf = MISSING
     trainer: DeepSpeechTrainerConf = DeepSpeechTrainerConf()
-    data: DataConfig = DataConfig()
+    data: DTWDataConfig = DTWDataConfig()
     augmentation: AugmentationConfig = AugmentationConfig()
     seed: int = 123456  # Seed for generators
-    load_auto_checkpoint: bool = False  # Automatically load the latest checkpoint from save folder
+    load_auto_checkpoint: bool = (
+        False  # Automatically load the latest checkpoint from save folder
+    )
