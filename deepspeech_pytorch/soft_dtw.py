@@ -110,7 +110,7 @@ class SoftDTW(torch.nn.Module):
         self.dist = dist
 
     def calc_distance_matrix(self, x, y):
-        """ 2D dimensional distance matrix computation
+        """2D dimensional distance matrix computation
         x and y are 2D sequences of lenght n and m (time dimension), and of dimension d"""
         n = x.size(0)
         m = y.size(0)

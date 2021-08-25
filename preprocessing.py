@@ -10,34 +10,34 @@ Created on Fri Aug 20 12:36:53 2021
 
 # takes as input the csv file of the triplets and creates the train, validation and test sets.
 
-import pandas as pd 
+import pandas as pd
 import numpy as np
 from sklearn.model_selection import train_test_split
 import os
 
-def create_csv(triplet_csv) : 
+
+def create_csv(triplet_csv):
     df = pd.read_csv(triplet_csv)
     train, test = train_test_split(df, train_size=0.80, shuffle=True)
     split = int(np.floor(0.5 * len(test)))
-    test  = test[split:]
-    valid  =  test[:split]
+    test = test[split:]
+    valid = test[:split]
     name = os.path.basename(triplet_csv)
-    train.to_csv('train_' + name,index=False),test.to_csv('test_' + name,index=False),valid.to_csv('valid_' + name,index=False)
-    
-    
-    
-if __name__ == '__main__':
-    
+    train.to_csv("train_" + name, index=False), test.to_csv(
+        "test_" + name, index=False
+    ), valid.to_csv("valid_" + name, index=False)
+
+
+if __name__ == "__main__":
+
     import argparse
 
     parser = argparse.ArgumentParser()
-    
+
     parser.add_argument(
         "triplet_csv", metavar="triplet_csv", help="file containing triplets audios"
     )
-    
+
     args = parser.parse_args()
-    
+
     create_csv(args.triplet_csv)
-    
-    

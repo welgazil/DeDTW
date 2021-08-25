@@ -9,8 +9,9 @@ from deepspeech_pytorch.decoder import Decoder, GreedyDecoder
 from pytorch_lightning.metrics import Metric
 import Levenshtein as Lev
 
-from average import get_res, complet_csv, get_res_gauss
-from metric import get_correlation_values
+from deepspeech_pytorch.average import get_res, complet_csv, get_res_gauss
+from deepspeech_pytorch.metric import get_correlation_values
+from deepspeech_pytorch.configs.train_config import DataConfig, DTWDataConfig
 
 
 class ErrorRate(Metric, ABC):
@@ -87,7 +88,9 @@ class CharErrorRate(ErrorRate):
             s1 (string): space-separated sentence
             s2 (string): space-separated sentence
         """
-        s1, s2, = s1.replace(" ", ""), s2.replace(" ", "")
+        s1, s2, = s1.replace(
+            " ", ""
+        ), s2.replace(" ", "")
         return Lev.distance(s1, s2)
 
 
@@ -177,7 +180,7 @@ def run_evaluation(
 
 @torch.no_grad()
 def run_evaluationdtw(
-    human_csv, test_loader, device: torch.device, model, precision: int
+    human_csv, test_loader, device: torch.device, model, precision: int, representation
 ):
     model.eval()
     id_triplets = []
@@ -192,28 +195,46 @@ def run_evaluationdtw(
             TGT_output, OTH_output, X_output = model(TGT, OTH, X)
 
         try:
-
-            a = get_res(TGT_output.numpy(), OTH_output.numpy(), X_output.numpy())
+            if representation == "gauss":
+                a = get_res_gauss(
+                    TGT_output.cpu().numpy(),
+                    OTH_output.cpu().numpy(),
+                    X_output.cpu().numpy(),
+                )
+            if representation == "dtw":
+                a = get_res(
+                    TGT_output.cpu().numpy(),
+                    OTH_output.cpu().numpy(),
+                    X_output.cpu().numpy(),
+                )
         except:
-
             OTH_output = torch.add(OTH_output, 10e-10)
             X_output = torch.add(X_output, 10e-10)
             TGT_output = torch.add(TGT_output, 10e-10)
 
-            a = get_res(TGT_output.numpy(), OTH_output.numpy(), X_output.numpy())
+            if representation == "gauss":
+                a = get_res_gauss(
+                    TGT_output.cpu().numpy(),
+                    OTH_output.cpu().numpy(),
+                    X_output.cpu().numpy(),
+                )
+            if representation == "dtw":
+                a = get_res(
+                    TGT_output.cpu().numpy(),
+                    OTH_output.cpu().numpy(),
+                    X_output.cpu().numpy(),
+                )
         delta_values.append(a)
 
         id_triplets2 = [id_triplets[x][0] for x in range(len(id_triplets))]
         df = complet_csv(human_csv, delta_values, id_triplets2)
 
-        spearman = get_correlation_values(
-            df["user_ans"], df["delta_values"], mode="spearman"
-        )
-        pearson = get_correlation_values(
-            df["user_ans"], df["delta_values"], mode="pearson"
-        )
+    spearman = get_correlation_values(
+        df["user_ans"], df["delta_values"], mode="spearman"
+    )
+    pearson = get_correlation_values(df["user_ans"], df["delta_values"], mode="pearson")
 
-        pos = [x for x in delta_values if x >= 0]
-        delta_positivity = (len(pos) / len(delta_values)) * 100
+    pos = [x for x in delta_values if x >= 0]
+    delta_positivity = (len(pos) / len(delta_values)) * 100
 
-        return spearman, pearson, delta_positivity
+    return spearman, pearson, delta_positivity

@@ -9,7 +9,9 @@ from omegaconf import OmegaConf
 from torch.cuda.amp import autocast
 from torch.nn import CTCLoss
 
-from train_config import (
+from deepspeech_pytorch.configs.train_config import DataConfig, DTWDataConfig
+
+from deepspeech_pytorch.train_config import (
     SpectConfig,
     BiDirectionalConfig,
     OptimConfig,
@@ -19,7 +21,8 @@ from train_config import (
 )
 from deepspeech_pytorch.decoder import GreedyDecoder
 from deepspeech_pytorch.validation import CharErrorRate, WordErrorRate
-from loss import DTWLoss
+from deepspeech_pytorch.loss import DTWLosslabels, DTWLosswithoutlabels
+from deepspeech_pytorch.gauss import gaussrep
 
 
 class SequenceWise(nn.Module):
@@ -114,9 +117,12 @@ class BatchRNN(nn.Module):
     def forward(self, x, output_lengths):
         if self.batch_norm is not None:
             x = self.batch_norm(x)
-        x = nn.utils.rnn.pack_padded_sequence(x, output_lengths)
+
+        #  x = nn.utils.rnn.pack_padded_sequence(x, output_lengths)
         x, h = self.rnn(x)
-        x, _ = nn.utils.rnn.pad_packed_sequence(x)
+        # print(x)
+        # print(x.size())
+        # x, _ = nn.utils.rnn.pad_packed_sequence(x)
         if self.bidirectional:
             x = (
                 x.view(x.size(0), x.size(1), 2, -1)
@@ -168,6 +174,7 @@ class Lookahead(nn.Module):
 class DeepSpeech(pl.LightningModule):
     def __init__(
         self,
+        dataD_cfg: DTWDataConfig,
         model_cfg: Union[UniDirectionalConfig, BiDirectionalConfig],
         precision: int,
         optim_cfg: Union[AdamConfig, SGDConfig],
@@ -179,6 +186,7 @@ class DeepSpeech(pl.LightningModule):
         self.precision = precision
         self.optim_cfg = optim_cfg
         self.spect_cfg = spect_cfg
+        self.data_cfg = dataD_cfg
         self.bidirectional = (
             True if OmegaConf.get_type(model_cfg) is BiDirectionalConfig else False
         )
@@ -193,6 +201,9 @@ class DeepSpeech(pl.LightningModule):
                 nn.Hardtanh(0, 20, inplace=True),
             )
         )
+        # comme on a des batch de 1 , faut enlever le mask
+        # batch > 1 faut changer la collate_fn
+
         # Based on above convolutions and spectrogram size using conv formula (W - F + 2P)/ S+1
         rnn_input_size = int(math.floor((16000 * 0.02) / 2) + 1)
         rnn_input_size = int(math.floor(rnn_input_size + 2 * 20 - 41) / 2 + 1)
@@ -228,12 +239,25 @@ class DeepSpeech(pl.LightningModule):
 
         self.inference_softmax = InferenceBatchSoftmax()
 
-        self.criterion = DTWLoss()
+        if self.data_cfg.labels == "with":
+            print("loss with labels")
+            self.criterion = DTWLosslabels(representation=self.data_cfg.representation)
+
+        if self.data_cfg.labels == "without":
+            print("loss without labels")
+            self.criterion = DTWLosswithoutlabels(
+                representation=self.data_cfg.representation
+            )
 
     def forward_once(self, x):
         lengths = torch.tensor(x.size(1))
         lengths = lengths.cpu().int()
         output_lengths = self.get_seq_lens(lengths)
+        output_lengths.unsqueeze_(0)
+        x = x.unsqueeze(0)
+        # print(x)
+        #  print(x.size())
+        #  print(output_lengths)
         x, _ = self.conv(x, output_lengths)
 
         sizes = x.size()
@@ -248,10 +272,21 @@ class DeepSpeech(pl.LightningModule):
         if not self.bidirectional:  # no need for lookahead layer in bidirectional
             x = self.lookahead(x)
 
-        x = self.fc(x)
-        x = x.transpose(0, 1)
+        #   x = self.fc(x)
+        #  x = x.transpose(0, 1)
         # identity in training mode, softmax in eval mode
-        x = self.inference_softmax(x)
+        #    x = self.inference_softmax(x)
+
+        x = torch.squeeze(x)
+        # then we know that the second dimension is time, we want to put it first
+        #   x = torch.swapaxes(x, 0, 1)
+
+        # print(x.size())
+
+        if self.data_cfg.representation == "gauss":
+            x = gaussrep(x)
+            x = torch.squeeze(x)
+
         return x, output_lengths
 
     def forward(self, input1, input2, input3):
@@ -283,6 +318,8 @@ class DeepSpeech(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         data = batch
+        # print(batch)
+
         TGT, OTH, X = data[0], data[1], data[2]
         id_triplets = data[3]
         labels = data[4]
@@ -297,29 +334,34 @@ class DeepSpeech(pl.LightningModule):
         # ajouter un early stopping dans le trainer
 
     def configure_optimizers(self):
-        if OmegaConf.get_type(self.optim_cfg) is SGDConfig:
-            optimizer = torch.optim.SGD(
-                params=self.parameters(),
-                lr=self.optim_cfg.learning_rate,
-                momentum=self.optim_cfg.momentum,
-                nesterov=True,
-                weight_decay=self.optim_cfg.weight_decay,
-            )
-        elif OmegaConf.get_type(self.optim_cfg) is AdamConfig:
-            optimizer = torch.optim.AdamW(
-                params=self.parameters(),
-                lr=self.optim_cfg.learning_rate,
-                betas=self.optim_cfg.betas,
-                eps=self.optim_cfg.eps,
-                weight_decay=self.optim_cfg.weight_decay,
-            )
-        else:
-            raise ValueError("Optimizer has not been specified correctly.")
+        # test
+        return torch.optim.Adam(self.parameters(), lr=1e-4)
+        #
 
-        scheduler = torch.optim.lr_scheduler.ExponentialLR(
-            optimizer=optimizer, gamma=self.optim_cfg.learning_anneal
-        )
-        return [optimizer], [scheduler]
+    # if OmegaConf.get_type(self.optim_cfg) is SGDConfig:
+    #  optimizer = torch.optim.SGD(
+    #   params=self.parameters(),
+    #    lr=self.optim_cfg.learning_rate,
+    #     momentum=self.optim_cfg.momentum,
+    #      nesterov=True,
+    #       weight_decay=self.optim_cfg.weight_decay,
+    #    )
+    # elif OmegaConf.get_type(self.optim_cfg) is AdamConfig:
+    #   optimizer = torch.optim.AdamW(
+    #   params=self.parameters(),
+    #    lr=self.optim_cfg.learning_rate,
+    #     betas=self.optim_cfg.betas,
+    #      eps=self.optim_cfg.eps,
+    #       weight_decay=self.optim_cfg.weight_decay,
+    #    )
+    # else:
+    #    raise ValueError("Optimizer has not been specified correctly.")
+
+    # scheduler = torch.optim.lr_scheduler.ExponentialLR(
+    #      optimizer=optimizer, gamma=self.optim_cfg.learning_anneal
+    # )
+
+    # return [optimizer], [scheduler]
 
     def get_seq_lens(self, input_length):
         """

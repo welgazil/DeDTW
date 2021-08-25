@@ -2,9 +2,15 @@ import hydra
 from hydra.core.config_store import ConfigStore
 from hydra_configs.pytorch_lightning.callbacks import ModelCheckpointConf
 
-from deepspeech_pytorch.configs.train_config import DeepSpeechConfig, AdamConfig, SGDConfig, BiDirectionalConfig, \
-    UniDirectionalConfig, GCSCheckpointConfig
-from deepspeech_pytorch.training import train
+from deepspeech_pytorch.configs.train_config import (
+    DeepSpeechConfig,
+    AdamConfig,
+    SGDConfig,
+    BiDirectionalConfig,
+    UniDirectionalConfig,
+    GCSCheckpointConfig,
+)
+from deepspeech_pytorch.training import train, trainDTW
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=DeepSpeechConfig)
@@ -18,8 +24,8 @@ cs.store(group="model", name="unidirectional", node=UniDirectionalConfig)
 
 @hydra.main(config_name="config")
 def hydra_main(cfg: DeepSpeechConfig):
-    train(cfg=cfg)
+    trainDTW(cfg=cfg)
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     hydra_main()

@@ -15,14 +15,18 @@ class SpectConfig:
     sample_rate: int = 16000  # The sample rate for the data/model features
     window_size: float = 0.02  # Window size for spectrogram generation (seconds)
     window_stride: float = 0.01  # Window stride for spectrogram generation (seconds)
-    window: SpectrogramWindow = SpectrogramWindow.hamming  # Window type for spectrogram generation
+    window: SpectrogramWindow = (
+        SpectrogramWindow.hamming
+    )  # Window type for spectrogram generation
 
 
 @dataclass
 class AugmentationConfig:
     speed_volume_perturb: bool = False  # Use random tempo and gain perturbations.
     spec_augment: bool = False  # Use simple spectral augmentation on mel spectograms.
-    noise_dir: str = ""  # Directory to inject noise into audio. If default, noise Inject not added
+    noise_dir: str = (
+        ""  # Directory to inject noise into audio. If default, noise Inject not added
+    )
     noise_prob: float = 0.4  # Probability of noise being added per sample
     noise_min: float = 0.0  # Minimum noise level to sample from. (1.0 means all noise, not original signal)
     noise_max: float = 0.5  # Maximum noise levels to sample from. Maximum 1.0
@@ -65,7 +69,9 @@ class BiDirectionalConfig:
 
 @dataclass
 class UniDirectionalConfig(BiDirectionalConfig):
-    lookahead_context: int = 20  # The lookahead context for convolution after RNN layers
+    lookahead_context: int = (
+        20  # The lookahead context for convolution after RNN layers
+    )
 
 
 @dataclass
@@ -89,7 +95,9 @@ class AdamConfig(OptimConfig):
 @dataclass
 class GCSCheckpointConfig(ModelCheckpointConf):
     gcs_bucket: str = MISSING  # Bucket to store model checkpoints e.g bucket-name
-    gcs_save_folder: str = MISSING  # Folder to store model checkpoints in bucket e.g models/
+    gcs_save_folder: str = (
+        MISSING  # Folder to store model checkpoints in bucket e.g models/
+    )
 
 
 @dataclass
@@ -100,11 +108,13 @@ class DeepSpeechTrainerConf(TrainerConf):
 @dataclass
 class DeepSpeechConfig:
     defaults: List[Any] = field(default_factory=lambda: defaults)
-    optim: Any = MISSING
+    optim: SGDConfig = SGDConfig()
     model: Any = MISSING
     checkpoint: ModelCheckpointConf = MISSING
     trainer: DeepSpeechTrainerConf = DeepSpeechTrainerConf()
     data: DTWDataConfig = DTWDataConfig()
     augmentation: AugmentationConfig = AugmentationConfig()
     seed: int = 123456  # Seed for generators
-    load_auto_checkpoint: bool = False  # Automatically load the latest checkpoint from save folder
+    load_auto_checkpoint: bool = (
+        False  # Automatically load the latest checkpoint from save folder
+    )

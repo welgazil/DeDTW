@@ -9,16 +9,16 @@ Created on Wed Aug 18 18:10:37 2021
 # importation of modules
 
 import pandas as pd
-from real_dtw import compute_dtw
+from deepspeech_pytorch.real_dtw import compute_dtw
 import numpy as np
 import torch.nn as nn
-from gauss import distcos
-from gauss import distcosN
+from deepspeech_pytorch.gauss import distcos
+from deepspeech_pytorch.gauss import distcosN
 
 
 def get_res(TGT, OTH, X):
 
-    """ Compute delta value for the representation obtained """
+    """Compute delta value for the representation obtained"""
     # Since we are now out of the model, we do not need the differentiable version of this
     # So I included the real dtw
     # sdtw = SoftDTW(gamma=1.0, normalize=True, dist='cosine')
@@ -46,7 +46,7 @@ def get_res(TGT, OTH, X):
 
 def get_res_gauss(TGT, OTH, X):
 
-    """ Compute delta value for the representation obtained """
+    """Compute delta value for the representation obtained"""
     # Since we are now out of the model, we do not need the differentiable version of this
     # So I included the real dtw
     # sdtw = SoftDTW(gamma=1.0, normalize=True, dist='cosine')
@@ -73,7 +73,7 @@ def get_res_gauss(TGT, OTH, X):
 
 def complet_csv(human_csv, delta, triplet_id):
 
-    """ Complete the human csv file with the new delta values """
+    """Complete the human csv file with the new delta values"""
 
     df = pd.read_csv(human_csv)
     df = df[
@@ -134,7 +134,10 @@ def complet_csv(human_csv, delta, triplet_id):
     res["phone_TGT"] = ans["phone_OTH"]
     res["phone_OTH"] = ans["phone_TGT"]
 
-    total = pd.concat([ans, res], axis=0,)
+    total = pd.concat(
+        [ans, res],
+        axis=0,
+    )
     # print('TOTAL#####', total)
     gf = total.groupby(
         ["language_TGT", "language_OTH", "phone_TGT", "phone_OTH"], as_index=False
