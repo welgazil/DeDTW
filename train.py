@@ -1,4 +1,21 @@
 import hydra
+import os
+import idr_torch
+
+
+
+os.environ['WORLD_SIZE'] = str(len(idr_torch.hostnames))
+os.environ['NODE_RANK'] = str(idr_torch.rank//len(idr_torch.hostnames))
+
+os.environ['MASTER_PORT']=str(77777)
+
+
+
+
+
+
+
+
 from hydra.core.config_store import ConfigStore
 from hydra_configs.pytorch_lightning.callbacks import ModelCheckpointConf
 
