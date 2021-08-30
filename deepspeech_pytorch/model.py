@@ -9,7 +9,7 @@ from omegaconf import OmegaConf
 from torch.cuda.amp import autocast
 from torch.nn import CTCLoss
 
-from deepspeech_pytorch.configs.train_config import DataConfig, DTWDataConfig
+from deepspeech_pytorch.configs.train_config import DTWDataConfig
 
 from deepspeech_pytorch.train_config import (
     SpectConfig,

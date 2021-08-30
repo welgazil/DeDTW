@@ -3,7 +3,7 @@ import math
 import os
 from pathlib import Path
 from tempfile import NamedTemporaryFile
-
+import csv
 import librosa
 import numpy as np
 import sox
@@ -87,8 +87,9 @@ class SpectrogramParser(AudioParser):
     def __init__(
         self,
         audio_conf: SpectConfig,
+        augmentation_conf: AugmentationConfig ,
         normalize: bool = False,
-        augmentation_conf: AugmentationConfig = None,
+        
     ):
         """
         Parses audio file into spectrogram with optional normalization and various augmentations
@@ -103,6 +104,7 @@ class SpectrogramParser(AudioParser):
         self.window = audio_conf.window.value
         self.normalize = normalize
         self.aug_conf = augmentation_conf
+        
         if augmentation_conf and augmentation_conf.noise_dir:
             self.noise_injector = NoiseInjection(
                 path=augmentation_conf.noise_dir,
@@ -112,7 +114,7 @@ class SpectrogramParser(AudioParser):
         else:
             self.noise_injector = None
 
-    def parse_audio(self, audio_path):
+    def parse_audio(self, audio_path,gaussian_noise):
         if self.aug_conf and self.aug_conf.speed_volume_perturb:
             y = load_randomly_augmented_audio(audio_path, self.sample_rate)
         else:
@@ -124,10 +126,18 @@ class SpectrogramParser(AudioParser):
                 y = self.noise_injector.inject_noise(y)
 
         # add gaussian_noise augmentation
-        if self.aug_conf and self.aug_conf.gaussian_noise:
-            y = load_audio(audio_path)
+        #print(self.aug_conf)
+        #print(augmentation_conf)
+       # print(self.aug_conf.speed_volume_perturb)
+      #  print(self.aug_conf.gaussian_noise)
+        
+        
+        if gaussian_noise:
+            
             wn = np.random.randn(len(y))
             y = y + 0.005 * wn
+            print('add noise')
+            
 
         n_fft = int(self.sample_rate * self.window_size)
         win_length = n_fft
@@ -163,10 +173,11 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
     def __init__(
         self,
         audio_conf: SpectConfig,
+        aug_cfg: AugmentationConfig,
         input_path: str,
         labels: list,
         normalize: bool = False,
-        aug_cfg: AugmentationConfig = None,
+        
     ):
         """
         Dataset that loads tensors via a csv containing file paths to audio files and transcripts separated by
@@ -402,36 +413,45 @@ class DTWData(Dataset, SpectrogramParser):
     def __init__(
         self,
         audio_conf: SpectConfig,
+        augmentation_conf: AugmentationConfig,
         train_csv: str,
         human_csv: str,
         train_dir: str,
         normalize: bool = False,
-        aug_cfg: AugmentationConfig = None,
+        gaussian_noise: bool = False,
+        
     ):
 
-        self.train_df = pd.read_csv(train_csv)
-        self.human_df = pd.read_csv(human_csv)
+        self.ids_train_df = self._parse_input_train(train_csv)
+        self.human_df = self._parse_input_human(human_csv)
         self.train_dir = train_dir
-        super(DTWData, self).__init__(audio_conf, normalize, aug_cfg)
+        self.gaussian_noise = gaussian_noise
+        super(DTWData, self).__init__(audio_conf, normalize, augmentation_conf)
 
     def __getitem__(self, index):
         # 3,4,5,7
-        TGT_path = os.path.join(self.train_dir, self.train_df.iloc[index].TGT_item)
-        OTH_path = os.path.join(self.train_dir, self.train_df.iloc[index].OTH_item)
-        X_path = os.path.join(self.train_dir, self.train_df.iloc[index].X_item)
+       
+        sample = self.ids_train_df[index]
+        
+        
+        TGT_path = os.path.join(self.train_dir, sample['TGT_item'])
+        OTH_path = os.path.join(self.train_dir, sample['OTH_item'])
+        X_path = os.path.join(self.train_dir, sample['X_item'])
         # print('TGT', TGT_path)
 
-        id_triplets = self.train_df.iloc[index].triplet_id
+        id_triplets = sample['triplet_id']
 
-        value = self.human_df[self.human_df["triplet_id"] == id_triplets].index.tolist()
-        labels_all = [self.human_df.loc[x].user_ans for x in value]
+        value = self.human_df[id_triplets]
+        labels_all = [x[0] for x in value]
         # print('labels', labels_all)
-        dataset = self.human_df.loc[value[0]].dataset
+        dataset = value[0][1]
+        
+        
 
         # compute sfft
-        TGT = self.parse_audio(TGT_path)
-        OTH = self.parse_audio(OTH_path)
-        X = self.parse_audio(X_path)
+        TGT = self.parse_audio(TGT_path,self.gaussian_noise)
+        OTH = self.parse_audio(OTH_path,self.gaussian_noise)
+        X = self.parse_audio(X_path,self.gaussian_noise)
 
         # according to the dataset we take the average result of the humans
         # We transform the labels so they are between 0 and 1 (0 is chance level for human, 1 is perfect score)
@@ -444,9 +464,33 @@ class DTWData(Dataset, SpectrogramParser):
             labels_list = [float(x) for x in labels_all]
             labels = np.mean(labels_list)
         return TGT, OTH, X, id_triplets, labels
+    
+    def _parse_input_train(self,input_path):
+        
+        ids_list = []
+        
+        with open(input_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                ids_list.append(row)
+                
+        return ids_list
+    
+    def _parse_input_human(self,input_path):
+        ids_2 = {}
+        with open(input_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                if row['triplet_id'] in ids_2.keys():
+                    ids_2[row['triplet_id']].append((row['user_ans'],row['dataset']))     
+                else : 
+                    ids_2[row['triplet_id']] = [(row['user_ans'],row['dataset'])]
+        return ids_2 
 
     def __len__(self):
-        return len(self.train_df)
+        return len(self.ids_train_df)
+
+    
 
 
 def _collate_fn_dtw(batch):

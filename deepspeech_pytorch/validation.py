@@ -11,7 +11,7 @@ import Levenshtein as Lev
 
 from deepspeech_pytorch.average import get_res, complet_csv, get_res_gauss
 from deepspeech_pytorch.metric import get_correlation_values
-from deepspeech_pytorch.configs.train_config import DataConfig, DTWDataConfig
+from deepspeech_pytorch.configs.train_config import  DTWDataConfig
 
 
 class ErrorRate(Metric, ABC):

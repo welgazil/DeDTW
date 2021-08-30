@@ -2,7 +2,7 @@ import pytorch_lightning as pl
 from hydra.utils import to_absolute_path
 import numpy as np
 
-from deepspeech_pytorch.configs.train_config import DataConfig, DTWDataConfig
+from deepspeech_pytorch.configs.train_config import DTWDataConfig, AugmentationConfig
 from deepspeech_pytorch.loader.data_loader import (
     SpectrogramDataset,
     DSRandomSampler,
@@ -71,7 +71,7 @@ from torch.utils.data import ConcatDataset
 
 
 class DeepSpeechDataModule(pl.LightningDataModule):
-    def __init__(self, dataD_cfg: DTWDataConfig, is_distributed: bool):
+    def __init__(self, dataD_cfg: DTWDataConfig, augmentation : AugmentationConfig, is_distributed: bool):
         super().__init__()
         self.train_csv = to_absolute_path(dataD_cfg.train_csv)
         self.human_train_csv = to_absolute_path(dataD_cfg.human_train_csv)
@@ -80,14 +80,18 @@ class DeepSpeechDataModule(pl.LightningDataModule):
         self.train_dir = to_absolute_path(dataD_cfg.train_dir)
         self.data_cfg = dataD_cfg
         self.spect_cfg = dataD_cfg.spect
-        self.aug_cfg = dataD_cfg.augmentation
+        self.aug_cfg = augmentation
         self.is_distributed = is_distributed
+        self.gaussian_noise = dataD_cfg.gaussian_noise
+        
+      
+        print( 'lolol' ,self.aug_cfg)
 
     # self.is_distributed = None
 
     def train_dataloader(self):
         train_dataset = self._create_dataset(
-            self.train_csv, self.human_train_csv, self.train_dir
+            self.train_csv, self.human_train_csv, self.train_dir , self.gaussian_noise
         )
         if self.is_distributed:
             train_sampler = DSElasticDistributedSampler(
@@ -106,7 +110,7 @@ class DeepSpeechDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         val_dataset = self._create_dataset(
-            self.val_csv, self.human_val_csv, self.train_dir
+            self.val_csv, self.human_val_csv, self.train_dir, False
         )
         val_loader = AudioDTWDataLoader(
             dataset=val_dataset,
@@ -115,26 +119,29 @@ class DeepSpeechDataModule(pl.LightningDataModule):
         )
         return val_loader
 
-    def _create_dataset(self, train_csv, human_csv, train_dir):
+    def _create_dataset(self, train_csv, human_csv, train_dir,gaussian_noise):
         # np.random.seed(42)
         dataset = DTWData(
             audio_conf=self.spect_cfg,
             train_csv=train_csv,
             human_csv=human_csv,
             train_dir=train_dir,
-            aug_cfg=None,
+            augmentation_conf=self.aug_cfg,
+            gaussian_noise=False
         )
 
         # data_augmentation
 
-        if self.aug_cfg and self.aug_cfg.gaussian_noise:
-
+        if gaussian_noise:
+            
+            
             dataset_gaussian_noise = DTWData(
                 audio_conf=self.spect_cfg,
                 train_csv=train_csv,
                 human_csv=human_csv,
                 train_dir=train_dir,
-                aug_cfg=self.aug_cfg,
+                augmentation_conf=self.aug_cfg,
+                gaussian_noise=True
             )
             dataset = ConcatDataset([dataset, dataset_gaussian_noise])
 
