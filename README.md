@@ -385,6 +385,25 @@ labels: str = "with" (or "without" )
  You can use the file multi_gpu.slurm with a sbatch to start the training
 
 
+### Multi-GPU Training
+
+If you want to use multi-gpu training you have to uncomment this line in multi_gpu.slurm : 
+
+```
+#PL_TORCH_DISTRIBUTED_BACKEND=nccl python train.py trainer.gpus=4 trainer.accelerator=ddp
+
+```
+
+and specify the same number of gpus above. 
+
+
+```
+#SBATCH --gres=gpu:4
+
+```
+
+
+
 
 ### Augmentation
 
