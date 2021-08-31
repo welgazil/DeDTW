@@ -314,3 +314,118 @@ Pre-trained models can be found under releases [here](https://github.com/SeanNar
 ## Acknowledgements
 
 Thanks to [Egor](https://github.com/EgorLakomkin) and [Ryan](https://github.com/ryanleary) for their contributions!
+
+////////////////////////////////////////////
+////////////////////////////////////////////:
+
+# DeDTW 
+[![Build Status](https://travis-ci.com/SeanNaren/deepspeech.pytorch.svg?branch=master)](https://travis-ci.com/SeanNaren/deepspeech.pytorch)
+
+Implementation of DeepSpeech2 for PyTorch using a DTWLoss. 
+
+## Install - same as for Deespeech 2 
+
+Several libraries are needed to be installed for training to work. I will assume that everything is being installed in
+an Anaconda installation on Ubuntu, with PyTorch installed.
+
+Install [PyTorch](https://github.com/pytorch/pytorch#installation) if you haven't already.
+
+If you want decoding to support beam search with an optional language model, install ctcdecode:
+```
+git clone --recursive https://github.com/parlance/ctcdecode.git
+cd ctcdecode && pip install .
+```
+
+Finally clone this repo and run this within the repo:
+```
+pip install -r requirements.txt
+pip install -e . # Dev install
+```
+
+If you plan to use Multi-node training, you'll need etcd. Below is the command to install on Ubuntu.
+```
+sudo apt-get install etcd
+```
+
+
+## Training
+
+### Datasets
+
+You have to download Perceptimatic's dataset from https://docs.cognitive-ml.fr/perceptimatic/perceptimatic_description.html, and then put all the wavs files in one folder. You have to use two csv files : triplets.csv and human_experimental_data.csv. You can use the preprocessing.py file that will create 3 csv files from triplets.csv : train / test / validation. 
+
+
+
+### Training Commands and Modifying Training Configs
+
+In order to start the training you have to specify before the paths of the different csv files in the config file. Defaults can be seen in [config.py](deepspeech_pytorch/configs/train_config.py). 
+
+
+For example : 
+
+train_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/train_triplets_all.csv"
+human_train_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_human_experimental_data.csv"
+test_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/test_triplets_all.csv"
+human_test_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_human_experimental_data.csv"
+val_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/valid_triplets_all.csv"
+human_val_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_human_experimental_data.csv"
+train_dir: str =  "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/Perceptimatic/wavs_extracted"
+
+
+You can also specifiy the way to calculate distances just below : 
+
+representation: str = "gauss" (or "dtw" ) 
+abels: str = "with" (or "without" ) 
+
+
+ ## Launch training.py
+ 
+ You can use the file multi_gpu.slurm with a sbatch to start the training
+
+
+
+### Augmentation
+
+You can also add gaussian noise to the input by setting gaussian_noise = True in train_config.py 
+
+
+
+### Checkpoints
+
+Typically checkpoints are stored in `lightning_logs/` in the current working directory of the script.
+
+This can be adjusted:
+
+```
+python train.py checkpoint.file_path=save_dir/
+```
+
+To load a previously saved checkpoint:
+
+```
+python train.py trainer.resume_from_checkpoint=lightning_logs/deepspeech_checkpoint_epoch_N_iter_N.ckpt
+```
+
+This continues from the same training state.
+
+## Testing/Inference
+
+To evaluate a trained model on a test set (has to be in the same format as the training set):
+
+```
+python test.py model.model_path=path/to/the/checkpoint
+
+```
+
+You can specify in (deepspeech_pytorch/configs/inference_config.py) the test_path and the human_test_csv. 
+
+
+
+
+
+
+
+
+
+
+
