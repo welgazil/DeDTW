@@ -34,15 +34,15 @@ class AugmentationConfig:
     gaussian_noise: bool = True
 
 
-@dataclass
-class DataConfig:
-    train_path: str = "data/train_manifest.csv"
-    val_path: str = "data/val_manifest.csv"
-    batch_size: int = 64  # Batch size for training
-    num_workers: int = 4  # Number of workers used in data-loading
-    labels_path: str = "labels.json"  # Contains tokens for model output
-    spect: SpectConfig = SpectConfig()
-    augmentation: AugmentationConfig = AugmentationConfig()
+#@dataclass
+#class DataConfig:
+    #train_path: str = "data/train_manifest.csv"
+    #val_path: str = "data/val_manifest.csv"
+   # batch_size: int = 64  # Batch size for training
+    #num_workers: int = 4  # Number of workers used in data-loading
+   # labels_path: str = "labels.json"  # Contains tokens for model output
+  #  spect: SpectConfig = SpectConfig()
+ #   aug: AugmentationConfig = AugmentationConfig()
 
 
 @dataclass
@@ -59,9 +59,10 @@ class DTWDataConfig:
     batch_size: int = 1  # Batch size for training
     num_workers: int = 2  # Number of workers used in data-loading
     spect: SpectConfig = SpectConfig()
-    augmentation: AugmentationConfig = AugmentationConfig()
+    aug: AugmentationConfig = AugmentationConfig()
     representation: str = "gauss"
     labels: str = "with"
+    gaussian_noise: bool = True
 
 
 @dataclass
@@ -117,7 +118,7 @@ class DeepSpeechConfig:
     checkpoint: ModelCheckpointConf = MISSING
     trainer: DeepSpeechTrainerConf = DeepSpeechTrainerConf()
     data: DTWDataConfig = DTWDataConfig()
-    augmentation: AugmentationConfig = AugmentationConfig()
+    #augmentation: AugmentationConfig = AugmentationConfig()
     seed: int = 123456  # Seed for generators
     load_auto_checkpoint: bool = (
         False  # Automatically load the latest checkpoint from save folder

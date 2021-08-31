@@ -68,6 +68,7 @@ def trainDTW(cfg: DeepSpeechConfig):
 
     data_loader = DeepSpeechDataModule(
         dataD_cfg=cfg.data,
+        augmentation = cfg.data.aug,
         is_distributed=cfg.trainer.gpus > 1,
     )
 
@@ -77,6 +78,8 @@ def trainDTW(cfg: DeepSpeechConfig):
         optim_cfg=cfg.optim,
         precision=cfg.trainer.precision,
         spect_cfg=cfg.data.spect,
+        
+        
     )
 
     early_stop_callback = EarlyStopping(monitor="val_loss", patience=2)
@@ -86,6 +89,6 @@ def trainDTW(cfg: DeepSpeechConfig):
         replace_sampler_ddp=False,
         callbacks=[checkpoint_callback, early_stop_callback]
         if cfg.trainer.checkpoint_callback
-        else [early_stop_callback],
+        else [early_stop_callback],#progress_bar_refresh_rate=0
     )
     trainer.fit(model, data_loader)

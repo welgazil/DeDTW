@@ -5,7 +5,7 @@ import idr_torch
 
 
 os.environ['WORLD_SIZE'] = str(len(idr_torch.hostnames))
-os.environ['NODE_RANK'] = str(idr_torch.rank//len(idr_torch.hostnames))
+os.environ['NODE_RANK'] = str(idr_torch.rank)
 
 os.environ['MASTER_PORT']=str(77777)
 
