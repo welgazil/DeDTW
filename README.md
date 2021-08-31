@@ -363,6 +363,7 @@ In order to start the training you have to specify before the paths of the diffe
 
 For example : 
 
+```
 train_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/train_triplets_all.csv"
 human_train_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_human_experimental_data.csv"
 test_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/test_triplets_all.csv"
@@ -370,13 +371,14 @@ human_test_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_huma
 val_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/valid_triplets_all.csv"
 human_val_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_human_experimental_data.csv"
 train_dir: str =  "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/Perceptimatic/wavs_extracted"
-
+```
 
 You can also specifiy the way to calculate distances just below : 
 
+```
 representation: str = "gauss" (or "dtw" ) 
 abels: str = "with" (or "without" ) 
-
+```
 
  ## Launch training.py
  
