@@ -93,6 +93,8 @@ class DeepSpeechDataModule(pl.LightningDataModule):
         train_dataset = self._create_dataset(
             self.train_csv, self.human_train_csv, self.train_dir , self.gaussian_noise
         )
+        
+        print(self.gaussian_noise)
         if self.is_distributed:
             train_sampler = DSElasticDistributedSampler(
                 dataset=train_dataset, batch_size=self.data_cfg.batch_size
@@ -127,10 +129,12 @@ class DeepSpeechDataModule(pl.LightningDataModule):
             human_csv=human_csv,
             train_dir=train_dir,
             augmentation_conf=self.aug_cfg,
-            gaussian_noise=False
+            gaussian_noise=True
         )
 
         # data_augmentation
+        
+        
 
         if gaussian_noise:
             
@@ -141,8 +145,8 @@ class DeepSpeechDataModule(pl.LightningDataModule):
                 human_csv=human_csv,
                 train_dir=train_dir,
                 augmentation_conf=self.aug_cfg,
-                gaussian_noise=True
+                gaussian_noise=False
             )
-            dataset = ConcatDataset([dataset, dataset_gaussian_noise])
+            dataset = ConcatDataset([dataset_gaussian_noise, dataset])
 
         return dataset

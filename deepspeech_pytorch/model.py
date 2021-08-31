@@ -11,7 +11,7 @@ from torch.nn import CTCLoss
 
 from deepspeech_pytorch.configs.train_config import DTWDataConfig
 
-from deepspeech_pytorch.train_config import (
+from deepspeech_pytorch.configs.train_config import (
     SpectConfig,
     BiDirectionalConfig,
     OptimConfig,
@@ -329,7 +329,7 @@ class DeepSpeech(pl.LightningModule):
         # out = out.log_softmax(-1)
 
         val_loss = self.criterion(output1, output2, output3, labels)
-        self.log("val_loss", val_loss, prog_bar=True, on_epoch=True)
+        self.log("val_loss", val_loss, prog_bar=False, on_epoch=True)
 
         # ajouter un early stopping dans le trainer
 

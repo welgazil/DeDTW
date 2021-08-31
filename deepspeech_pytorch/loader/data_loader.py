@@ -131,12 +131,13 @@ class SpectrogramParser(AudioParser):
        # print(self.aug_conf.speed_volume_perturb)
       #  print(self.aug_conf.gaussian_noise)
         
-        
-        if gaussian_noise:
-            
+       # print('noise =',gaussian_noise)
+        if gaussian_noise==True:
+          #  print(y[0:10])
             wn = np.random.randn(len(y))
-            y = y + 0.005 * wn
-            print('add noise')
+            y = y + 0.1 * wn
+         #   print('add noise')
+         #   print(y[0:10])
             
 
         n_fft = int(self.sample_rate * self.window_size)
