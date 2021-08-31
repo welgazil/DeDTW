@@ -377,7 +377,7 @@ You can also specifiy the way to calculate distances just below :
 
 ```
 representation: str = "gauss" (or "dtw" ) 
-abels: str = "with" (or "without" ) 
+labels: str = "with" (or "without" ) 
 ```
 
  ## Launch training.py
