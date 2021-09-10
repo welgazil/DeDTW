@@ -23,7 +23,7 @@ class SpectConfig:
 @dataclass
 class AugmentationConfig:
     speed_volume_perturb: bool = False  # Use random tempo and gain perturbations.
-    spec_augment: bool = True  # Use simple spectral augmentation on mel spectograms.
+    spec_augment: bool = False  # Use simple spectral augmentation on mel spectograms.
     noise_dir: str = (
         ""  # Directory to inject noise into audio. If default, noise Inject not added
     )
