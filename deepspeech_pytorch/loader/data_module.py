@@ -100,11 +100,11 @@ class DeepSpeechDataModule(pl.LightningDataModule):
             train_sampler = DSRandomSampler(
                 dataset=train_dataset, batch_size=self.data_cfg.batch_size
             )
-        train_loader = AudioDTWDataLoader(
+        """train_loader = AudioDTWDataLoader(
             dataset=train_dataset,
             num_workers=self.data_cfg.num_workers,
             batch_sampler=train_sampler,
-        )
+        )"""
         
         train_loader = DataLoader(train_dataset,batch_size=1,shuffle=True)
         return train_loader
