@@ -90,7 +90,7 @@ class DeepSpeechDataModule(pl.LightningDataModule):
             self.train_csv, self.human_csv, self.train_dir
         )
         
-        print(self.gaussian_noise)
+        print(self.aug_cfg.gaussian_noise)
         if self.is_distributed:
             train_sampler = DSElasticDistributedSampler(
                 dataset=train_dataset, batch_size=self.data_cfg.batch_size
