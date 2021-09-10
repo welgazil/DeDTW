@@ -74,9 +74,8 @@ class DeepSpeechDataModule(pl.LightningDataModule):
     def __init__(self, dataD_cfg: DTWDataConfig, is_distributed: bool):
         super().__init__()
         self.train_csv = to_absolute_path(dataD_cfg.train_csv)
-        self.human_train_csv = to_absolute_path(dataD_cfg.human_train_csv)
+        self.human_csv = to_absolute_path(dataD_cfg.human_csv)
         self.val_csv = to_absolute_path(dataD_cfg.val_csv)
-        self.human_val_csv = to_absolute_path(dataD_cfg.human_val_csv)
         self.train_dir = to_absolute_path(dataD_cfg.train_dir)
         self.data_cfg = dataD_cfg
         self.spect_cfg = dataD_cfg.spect
@@ -88,7 +87,7 @@ class DeepSpeechDataModule(pl.LightningDataModule):
 
     def train_dataloader(self):
         train_dataset = self._create_dataset(
-            self.train_csv, self.human_train_csv, self.train_dir
+            self.train_csv, self.human_csv, self.train_dir
         )
         
         print(self.gaussian_noise)
@@ -111,7 +110,7 @@ class DeepSpeechDataModule(pl.LightningDataModule):
 
     def val_dataloader(self):
         val_dataset = self._create_dataset(
-            train_csv=self.val_csv, human_csv=self.human_val_csv, train_dir=self.train_dir
+            train_csv=self.val_csv, human_csv=self.human_csv, train_dir=self.train_dir
         )
         val_loader = AudioDTWDataLoader(
             dataset=val_dataset,

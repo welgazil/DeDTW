@@ -10,12 +10,6 @@ os.environ['NODE_RANK'] = str(idr_torch.rank)
 os.environ['MASTER_PORT']=str(77777)
 
 
-
-
-
-
-
-
 from hydra.core.config_store import ConfigStore
 from hydra_configs.pytorch_lightning.callbacks import ModelCheckpointConf
 
@@ -27,7 +21,7 @@ from deepspeech_pytorch.configs.train_config import (
     UniDirectionalConfig,
     GCSCheckpointConfig,
 )
-from deepspeech_pytorch.training import train, trainDTW
+from deepspeech_pytorch.training import trainDTW
 
 cs = ConfigStore.instance()
 cs.store(name="config", node=DeepSpeechConfig)
