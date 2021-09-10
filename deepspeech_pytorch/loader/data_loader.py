@@ -436,7 +436,13 @@ class DTWData(Dataset, SpectrogramParser):
         elif self.level == 'contrast':
             # we get contrast and language n top of dataset name
             triplet_cont1, triplet_cont2 = self.human_triplet[id_triplets][0][3], self.human_triplet[id_triplets][0][4]
-            value = self.human_contrast.get(triplet_cont1, self.human_contrast[triplet_cont2])
+            if triplet_cont2 in self.human_contrast:
+                value = self.human_contrast[triplet_cont2]
+            elif triplet_cont1 in self.human_contrast:
+                value = self.human_contrast[triplet_cont1]
+            else:
+                print('Problem', triplet_cont1, triplet_cont2)
+            #value = self.human_contrast.get(triplet_cont1, self.human_contrast[triplet_cont2])
             labels_all = [x[0] for x in value if (x[1] == self.language)] # we check right language
         else:
             print('Error, level not implemented')
