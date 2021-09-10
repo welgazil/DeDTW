@@ -104,6 +104,7 @@ class SpectrogramParser(AudioParser):
         self.window = audio_conf.window.value
         self.normalize = normalize
         self.aug_conf = augmentation_conf
+        self.gaussian_noise = augmentation_conf.gaussian_noise
         
         if augmentation_conf and augmentation_conf.noise_dir:
             self.noise_injector = NoiseInjection(
@@ -114,30 +115,18 @@ class SpectrogramParser(AudioParser):
         else:
             self.noise_injector = None
 
-    def parse_audio(self, audio_path,gaussian_noise):
+    def parse_audio(self, audio_path):
         if self.aug_conf and self.aug_conf.speed_volume_perturb:
             y = load_randomly_augmented_audio(audio_path, self.sample_rate)
         else:
-            # or y , sample_rate = load_audio_librosa(audio_path)
             y = load_audio(audio_path)
         if self.noise_injector:
             add_noise = np.random.binomial(1, self.aug_conf.noise_prob)
             if add_noise:
                 y = self.noise_injector.inject_noise(y)
-
-        # add gaussian_noise augmentation
-        #print(self.aug_conf)
-        #print(augmentation_conf)
-       # print(self.aug_conf.speed_volume_perturb)
-      #  print(self.aug_conf.gaussian_noise)
-        
-       # print('noise =',gaussian_noise)
-        if gaussian_noise==True:
-          #  print(y[0:10])
+        if self.gaussian_noise==True:
             wn = np.random.randn(len(y))
             y = y + 0.1 * wn
-         #   print('add noise')
-         #   print(y[0:10])
             
 
         n_fft = int(self.sample_rate * self.window_size)
@@ -152,7 +141,6 @@ class SpectrogramParser(AudioParser):
             window=self.window,
         )
         spect, phase = librosa.magphase(D)
-        # S = log(S+1)
         spect = np.log1p(spect)
         spect = torch.FloatTensor(spect)
         if self.normalize:
@@ -196,7 +184,7 @@ class SpectrogramDataset(Dataset, SpectrogramParser):
         self.ids = self._parse_input(input_path)
         self.size = len(self.ids)
         self.labels_map = dict([(labels[i], i) for i in range(len(labels))])
-        super(SpectrogramDataset, self).__init__(audio_conf, normalize, aug_cfg)
+        super(SpectrogramDataset, self).__init__(audio_conf=audio_conf, normalize=normalize, augmentation_conf=aug_cfg)
 
     def __getitem__(self, index):
         sample = self.ids[index]
@@ -418,45 +406,48 @@ class DTWData(Dataset, SpectrogramParser):
         train_csv: str,
         human_csv: str,
         train_dir: str,
+        language: str,
+        level: str,
         normalize: bool = False,
-        gaussian_noise: bool = False,
+
         
     ):
-
+        self.level = level
+        self.language = language
         self.ids_train_df = self._parse_input_train(train_csv)
-        self.human_df = self._parse_input_human(human_csv)
+        self.human_triplet, self.human_contrast = self._parse_input_human(human_csv)
         self.train_dir = train_dir
-        self.gaussian_noise = gaussian_noise
-        super(DTWData, self).__init__(audio_conf, normalize, augmentation_conf)
+        super(DTWData, self).__init__(audio_conf=audio_conf, normalize=normalize, augmentation_conf=augmentation_conf)
 
     def __getitem__(self, index):
-        # 3,4,5,7
-       
         sample = self.ids_train_df[index]
-        
-        
+
         TGT_path = os.path.join(self.train_dir, sample['TGT_item'])
         OTH_path = os.path.join(self.train_dir, sample['OTH_item'])
         X_path = os.path.join(self.train_dir, sample['X_item'])
-        # print('TGT', TGT_path)
-
+        dataset_triplet = sample['dataset']
         id_triplets = sample['triplet_id']
 
-        value = self.human_df[id_triplets]
-        labels_all = [x[0] for x in value]
-        # print('labels', labels_all)
-        dataset = value[0][1]
-        
-        
+
+        if self.level == 'triplet':
+            value = self.human_triplet[id_triplets]
+            labels_all = [x[0] for x in value if (x[1] == dataset_triplet and x[2] == self.language)] # we check right name of dataset and triplet and language
+        elif self.level == 'contrast':
+            # we get contrast and language n top of dataset name
+            triplet_cont1, triplet_cont2 = self.human_triplet[id_triplets][0][3], self.human_triplet[id_triplets][0][4]
+            value = self.human_contrast.get(triplet_cont1, self.human_contrast[triplet_cont2])
+            labels_all = [x[0] for x in value if (x[1] == self.language)] # we check right language
+        else:
+            print('Error, level not implemented')
 
         # compute sfft
-        TGT = self.parse_audio(TGT_path,self.gaussian_noise)
-        OTH = self.parse_audio(OTH_path,self.gaussian_noise)
-        X = self.parse_audio(X_path,self.gaussian_noise)
+        TGT = self.parse_audio(TGT_path)
+        OTH = self.parse_audio(OTH_path)
+        X = self.parse_audio(X_path)
 
         # according to the dataset we take the average result of the humans
         # We transform the labels so they are between 0 and 1 (0 is chance level for human, 1 is perfect score)
-        if dataset == "WorldVowels" or dataset == "zerospeech":
+        if dataset_triplet == "WorldVowels" or dataset_triplet == "zerospeech":
             labels_list = [float(x) / 3.0 for x in labels_all]
             # print(labels_list)
             labels = np.mean(labels_list)
@@ -479,14 +470,32 @@ class DTWData(Dataset, SpectrogramParser):
     
     def _parse_input_human(self,input_path):
         ids_2 = {}
+        ids_3 = {}
         with open(input_path, newline='') as csvfile:
             reader = csv.DictReader(csvfile)
             for row in reader:
+                contrast1 = row['phone_TGT'] + ';' + row['phone_OTH'] + ';' + row['dataset'] + ';' + row[
+                    'language_TGT'] + ';' + row['language_OTH']
+                contrast2 = row['phone_OTH'] + ';' + row['phone_TGT'] + ';' + row['dataset'] + ';' + row[
+                    'language_OTH'] + ';' + row['language_TGT']
                 if row['triplet_id'] in ids_2.keys():
-                    ids_2[row['triplet_id']].append((row['user_ans'],row['dataset']))     
-                else : 
-                    ids_2[row['triplet_id']] = [(row['user_ans'],row['dataset'])]
-        return ids_2 
+                    ids_2[row['triplet_id']].append((row['user_ans'],row['dataset'], row['subject_language'],contrast1, contrast2))
+                else :
+                    ids_2[row['triplet_id']] = [(row['user_ans'],row['dataset'], row['subject_language'],contrast1, contrast2)]
+
+        with open(input_path, newline='') as csvfile:
+            reader = csv.DictReader(csvfile)
+            for row in reader:
+                contrast1 = row['phone_TGT'] + ';' + row['phone_OTH'] + ';' + row['dataset'] + ';' + row['language_TGT'] + ';' + row['language_OTH']
+                contrast2 = row['phone_OTH'] + ';' + row['phone_TGT'] + ';' + row['dataset'] + ';' + row['language_OTH'] + ';' + row['language_TGT']
+                if contrast1 in ids_3.keys():
+                    ids_3[contrast1].append((row['user_ans'],row['subject_language']))
+                elif contrast2 in ids_3.keys():
+                    ids_3[contrast2].append((row['user_ans'], row['subject_language']))
+                else :
+                    ids_3[contrast1] = [(row['user_ans'], row['subject_language'])]
+        return ids_2, ids_3
+
 
     def __len__(self):
         return len(self.ids_train_df)

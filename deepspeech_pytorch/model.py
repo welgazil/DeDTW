@@ -255,9 +255,6 @@ class DeepSpeech(pl.LightningModule):
         output_lengths = self.get_seq_lens(lengths)
         output_lengths.unsqueeze_(0)
         x = x.unsqueeze(0)
-        # print(x)
-        #  print(x.size())
-        #  print(output_lengths)
         x, _ = self.conv(x, output_lengths)
 
         sizes = x.size()
@@ -272,16 +269,14 @@ class DeepSpeech(pl.LightningModule):
         if not self.bidirectional:  # no need for lookahead layer in bidirectional
             x = self.lookahead(x)
 
-        #   x = self.fc(x)
-        #  x = x.transpose(0, 1)
+        #x = self.fc(x)
+        #x = x.transpose(0, 1)
         # identity in training mode, softmax in eval mode
-        #    x = self.inference_softmax(x)
+        #x = self.inference_softmax(x)
 
         x = torch.squeeze(x)
-        # then we know that the second dimension is time, we want to put it first
-        #   x = torch.swapaxes(x, 0, 1)
 
-        # print(x.size())
+        print(x.size())
 
         if self.data_cfg.representation == "gauss":
             x = gaussrep(x)
@@ -296,10 +291,6 @@ class DeepSpeech(pl.LightningModule):
         output2, _ = self.forward_once(input2)
         # forward pass of input 2
         output3, _ = self.forward_once(input3)
-
-        # ce que j'aurai pu faire ici c'est avoir
-        # inputs, targets, input_percentages, target_sizes = batch
-        # où inputs rassemblent les trois triplets, puis les séparer ?
 
         return output1, output2, output3
 
@@ -325,8 +316,6 @@ class DeepSpeech(pl.LightningModule):
         labels = data[4]
 
         output1, output2, output3 = self(TGT, OTH, X)
-        # out = out.transpose(0, 1)  # TxNxH
-        # out = out.log_softmax(-1)
 
         val_loss = self.criterion(output1, output2, output3, labels)
         self.log("val_loss", val_loss, prog_bar=False, on_epoch=True)
@@ -334,34 +323,10 @@ class DeepSpeech(pl.LightningModule):
         # ajouter un early stopping dans le trainer
 
     def configure_optimizers(self):
-        # test
         return torch.optim.Adam(self.parameters(), lr=1e-4)
-        #
 
-    # if OmegaConf.get_type(self.optim_cfg) is SGDConfig:
-    #  optimizer = torch.optim.SGD(
-    #   params=self.parameters(),
-    #    lr=self.optim_cfg.learning_rate,
-    #     momentum=self.optim_cfg.momentum,
-    #      nesterov=True,
-    #       weight_decay=self.optim_cfg.weight_decay,
-    #    )
-    # elif OmegaConf.get_type(self.optim_cfg) is AdamConfig:
-    #   optimizer = torch.optim.AdamW(
-    #   params=self.parameters(),
-    #    lr=self.optim_cfg.learning_rate,
-    #     betas=self.optim_cfg.betas,
-    #      eps=self.optim_cfg.eps,
-    #       weight_decay=self.optim_cfg.weight_decay,
-    #    )
-    # else:
-    #    raise ValueError("Optimizer has not been specified correctly.")
 
-    # scheduler = torch.optim.lr_scheduler.ExponentialLR(
-    #      optimizer=optimizer, gamma=self.optim_cfg.learning_anneal
-    # )
 
-    # return [optimizer], [scheduler]
 
     def get_seq_lens(self, input_length):
         """
