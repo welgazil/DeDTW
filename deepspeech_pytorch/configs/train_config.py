@@ -115,7 +115,6 @@ class DeepSpeechConfig:
     checkpoint: ModelCheckpointConf = MISSING
     trainer: DeepSpeechTrainerConf = DeepSpeechTrainerConf()
     data: DTWDataConfig = DTWDataConfig()
-    #augmentation: AugmentationConfig = AugmentationConfig()
     seed: int = 123456  # Seed for generators
     load_auto_checkpoint: bool = (
         False  # Automatically load the latest checkpoint from save folder
