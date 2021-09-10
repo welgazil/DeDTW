@@ -59,7 +59,7 @@ class DTWDataConfig:
     representation: str = "gauss" # gauss or normal
     labels: str = "with" #  with or without
     language_participants: str = "english" # english or french
-    level: str = "triplet" # triplet or contrast
+    level: str = "contrast" # triplet or contrast
 
 
 @dataclass
