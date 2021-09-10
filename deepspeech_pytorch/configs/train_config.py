@@ -53,9 +53,7 @@ class DTWDataConfig:
     human_test_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_human_experimental_data.csv"
     val_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/valid_triplets_all.csv"
     human_val_csv: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/all_human_experimental_data.csv"
-    train_dir: str = (
-        "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/Perceptimatic/wavs_extracted"
-    )
+    train_dir: str = "/gpfswork/rech/jnf/urm17su/deepdtw/data_triplets/Perceptimatic/wavs_extracted"
     batch_size: int = 1  # Batch size for training
     num_workers: int = 2  # Number of workers used in data-loading
     spect: SpectConfig = SpectConfig()

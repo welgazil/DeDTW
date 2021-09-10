@@ -135,7 +135,7 @@ class SpectrogramParser(AudioParser):
         if gaussian_noise==True:
           #  print(y[0:10])
             wn = np.random.randn(len(y))
-            y = y + 0.1 * wn
+            y = y + 0.005 * wn
          #   print('add noise')
          #   print(y[0:10])
             
@@ -435,17 +435,29 @@ class DTWData(Dataset, SpectrogramParser):
         sample = self.ids_train_df[index]
         
         
-        TGT_path = os.path.join(self.train_dir, sample['TGT_item'])
-        OTH_path = os.path.join(self.train_dir, sample['OTH_item'])
-        X_path = os.path.join(self.train_dir, sample['X_item'])
+        TGT_path = os.path.join(self.train_dir, sample['dataset'], 'wavs_extracted', sample['TGT_item'])
+        OTH_path = os.path.join(self.train_dir, sample['dataset'], 'wavs_extracted', sample['OTH_item'])
+        X_path = os.path.join(self.train_dir, sample['dataset'], 'wavs_extracted', sample['X_item'])
         # print('TGT', TGT_path)
+        
+        dataset_triplet = sample['dataset']
 
         id_triplets = sample['triplet_id']
-
+        
+        
         value = self.human_df[id_triplets]
-        labels_all = [x[0] for x in value]
+        
+        value_2 = []
+
+        for x in value:
+            
+            if x[1]==dataset_triplet:
+                value_2.append(x[0])
+
+        
+        labels_all = value_2
         # print('labels', labels_all)
-        dataset = value[0][1]
+        
         
         
 
@@ -456,7 +468,7 @@ class DTWData(Dataset, SpectrogramParser):
 
         # according to the dataset we take the average result of the humans
         # We transform the labels so they are between 0 and 1 (0 is chance level for human, 1 is perfect score)
-        if dataset == "WorldVowels" or dataset == "zerospeech":
+        if dataset_triplet == "WorldVowels" or dataset_triplet == "zerospeech":
             labels_list = [float(x) / 3.0 for x in labels_all]
             # print(labels_list)
             labels = np.mean(labels_list)
