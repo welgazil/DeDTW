@@ -112,11 +112,11 @@ class DeepSpeechDataModule(pl.LightningDataModule):
         val_dataset = self._create_dataset(
             train_csv=self.val_csv, human_csv=self.human_csv, train_dir=self.train_dir
         )
-        val_loader = AudioDTWDataLoader(
+        """val_loader = AudioDTWDataLoader(
             dataset=val_dataset,
             num_workers=self.data_cfg.num_workers,
             batch_size=self.data_cfg.batch_size,
-        )
+        )"""
         
         val_loader = DataLoader(val_dataset,batch_size=1,shuffle=True)
         return val_loader
@@ -135,7 +135,7 @@ class DeepSpeechDataModule(pl.LightningDataModule):
         )
 
         # data_augmentation
-        if self.aug_cf.gaussian_noise:
+        if self.aug_cfg.gaussian_noise:
             dataset_gaussian_noise = DTWData(
                 audio_conf=self.spect_cfg,
                 train_csv=train_csv,
