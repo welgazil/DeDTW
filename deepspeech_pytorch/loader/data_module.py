@@ -10,7 +10,7 @@ from deepspeech_pytorch.loader.data_loader import (
     DSElasticDistributedSampler,
 )
 from deepspeech_pytorch.loader.data_loader import DTWData, AudioDTWDataLoader
-from torch.utils.data import ConcatDataset
+from torch.utils.data import ConcatDataset,DataLoader
 
 
 # class DeepSpeechDataModule(pl.LightningDataModule):
@@ -105,6 +105,8 @@ class DeepSpeechDataModule(pl.LightningDataModule):
             num_workers=self.data_cfg.num_workers,
             batch_sampler=train_sampler,
         )
+        
+        train_loader = DataLoader(train_dataset,batch_size=1,shuffle=True)
         return train_loader
 
     def val_dataloader(self):
@@ -116,6 +118,8 @@ class DeepSpeechDataModule(pl.LightningDataModule):
             num_workers=self.data_cfg.num_workers,
             batch_size=self.data_cfg.batch_size,
         )
+        
+        val_loader = DataLoader(val_dataset,batch_size=1,shuffle=True)
         return val_loader
 
     def _create_dataset(self, train_csv, human_csv, train_dir):

@@ -318,7 +318,7 @@ class DeepSpeech(pl.LightningModule):
         output1, output2, output3 = self(TGT, OTH, X)
 
         val_loss = self.criterion(output1, output2, output3, labels)
-        self.log("val_loss", val_loss, prog_bar=False, on_epoch=True)
+        self.log("val_loss", val_loss, prog_bar=True, on_epoch=True)
 
         # ajouter un early stopping dans le trainer
 

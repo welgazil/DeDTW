@@ -126,7 +126,7 @@ class SpectrogramParser(AudioParser):
                 y = self.noise_injector.inject_noise(y)
         if self.gaussian_noise==True:
             wn = np.random.randn(len(y))
-            y = y + 0.1 * wn
+            y = y + 0.005 * wn
             
 
         n_fft = int(self.sample_rate * self.window_size)
@@ -422,6 +422,7 @@ class DTWData(Dataset, SpectrogramParser):
     def __getitem__(self, index):
         sample = self.ids_train_df[index]
 
+
         TGT_path = os.path.join(self.train_dir, sample['TGT_item'])
         OTH_path = os.path.join(self.train_dir, sample['OTH_item'])
         X_path = os.path.join(self.train_dir, sample['X_item'])
@@ -439,6 +440,7 @@ class DTWData(Dataset, SpectrogramParser):
             labels_all = [x[0] for x in value if (x[1] == self.language)] # we check right language
         else:
             print('Error, level not implemented')
+
 
         # compute sfft
         TGT = self.parse_audio(TGT_path)
