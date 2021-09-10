@@ -126,7 +126,7 @@ class SpectrogramParser(AudioParser):
                 y = self.noise_injector.inject_noise(y)
         if self.gaussian_noise==True:
             wn = np.random.randn(len(y))
-            y = y + 0.005 * wn
+            y = y + 0.1 * wn
             
 
         n_fft = int(self.sample_rate * self.window_size)
@@ -149,7 +149,7 @@ class SpectrogramParser(AudioParser):
             spect.add_(-mean)
             spect.div_(std)
 
-        if self.aug_conf and self.aug_conf.spec_augment:
+        if self.aug_conf.spec_augment:
             spect = spec_augment(spect)
 
         return spect

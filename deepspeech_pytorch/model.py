@@ -276,7 +276,7 @@ class DeepSpeech(pl.LightningModule):
 
         x = torch.squeeze(x)
 
-        print(x.size())
+        #print(x.size())
 
         if self.data_cfg.representation == "gauss":
             x = gaussrep(x)
