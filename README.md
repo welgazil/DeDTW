@@ -323,7 +323,7 @@ Thanks to [Egor](https://github.com/EgorLakomkin) and [Ryan](https://github.com/
 
 Implementation of DeepSpeech2 for PyTorch using a DTWLoss. 
 
-## Install - same as for Deespeech 2 
+## Install - same as for Deespeech 2 + pandas
 
 Several libraries are needed to be installed for training to work. I will assume that everything is being installed in
 an Anaconda installation on Ubuntu, with PyTorch installed.
