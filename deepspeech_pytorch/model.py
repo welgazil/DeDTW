@@ -9,6 +9,7 @@ from omegaconf import OmegaConf
 from torch.cuda.amp import autocast
 from torch.nn import CTCLoss
 from deepspeech_pytorch.real_dtw import compute_dtw
+from deepspeech_pytorch.gauss import distcos
 
 from deepspeech_pytorch.configs.train_config import DTWDataConfig
 
@@ -280,7 +281,7 @@ class DeepSpeech(pl.LightningModule):
         if self.data_cfg.representation == "gauss":
             x = gaussrep(x)
             x = torch.squeeze(x)
-            print('in gauss', x)
+            print('in gauss', x.size())
 
         return x, output_lengths
 
@@ -323,10 +324,14 @@ class DeepSpeech(pl.LightningModule):
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True)
 
         # get real dtw
-        TGT, OTH, X = TGT.cpu().numpy()[0], OTH.cpu().numpy()[0], X.cpu().numpy()[0]
+        TGT, OTH, X = output1.cpu().numpy(), output2.cpu().numpy(), output3.cpu().numpy()
         print(TGT.shape, OTH.shape, X.shape)
-        tgt_X = compute_dtw(TGT,X, dist_for_cdist='cosine', norm_div=True)
-        oth_X = compute_dtw(OTH,X, dist_for_cdist='cosine', norm_div=True)
+        if self.data_cfg.representation == "gauss":
+            tgt_X = distcos(TGT, X)
+            oth_X = distcos(OTH, X)
+        else:
+            tgt_X = compute_dtw(TGT,X, dist_for_cdist='cosine', norm_div=True)
+            oth_X = compute_dtw(OTH,X, dist_for_cdist='cosine', norm_div=True)
         self.log('real_val_value', (oth_X - tgt_X) - labels.numpy(), prog_bar = True, on_epoch = True)
 
 
