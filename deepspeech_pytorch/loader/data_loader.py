@@ -89,6 +89,7 @@ class SpectrogramParser(AudioParser):
         audio_conf: SpectConfig,
         augmentation_conf: AugmentationConfig ,
         normalize: bool = False,
+        add_gaussian_noise: bool = False
         
     ):
         """
@@ -104,7 +105,7 @@ class SpectrogramParser(AudioParser):
         self.window = audio_conf.window.value
         self.normalize = normalize
         self.aug_conf = augmentation_conf
-        self.gaussian_noise = augmentation_conf.gaussian_noise
+        self.gaussian_noise = augmentation_conf.gaussian_noise and add_gaussian_noise
         
         if augmentation_conf and augmentation_conf.noise_dir:
             self.noise_injector = NoiseInjection(
@@ -419,14 +420,9 @@ class DTWData(Dataset, SpectrogramParser):
         self.human_triplet, self.human_contrast = self._parse_input_human(human_csv)
         self.train_dir = train_dir
         self.adding_noise = adding_noise
-        aug_conf = augmentation_conf
-        if not self.adding_noise and aug_conf.gaussian_noise:
-            print('NOT ADDING NOISE FIRST')
-            aug_conf.gaussian_noise = False
-        else:
-            print('NOOW ADDING NOISE')
+        aug_conf = augmentation_conf.copy()
 
-        super(DTWData, self).__init__(audio_conf=audio_conf, normalize=normalize, augmentation_conf=aug_conf)
+        super(DTWData, self).__init__(audio_conf=audio_conf, normalize=normalize, augmentation_conf=aug_conf, add_gaussian_noise=adding_noise)
 
     def __getitem__(self, index):
         sample = self.ids_train_df[index]

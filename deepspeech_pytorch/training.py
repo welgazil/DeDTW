@@ -86,6 +86,6 @@ def trainDTW(cfg: DeepSpeechConfig):
         replace_sampler_ddp=False,
         callbacks=[checkpoint_callback, early_stop_callback]
         if cfg.trainer.checkpoint_callback
-        else [early_stop_callback],progress_bar_refresh_rate=1000
+        else [early_stop_callback],progress_bar_refresh_rate=0
     )
     trainer.fit(model, data_loader)
