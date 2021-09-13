@@ -413,7 +413,7 @@ class DTWData(Dataset, SpectrogramParser):
         
     ):
         self.level = level
-        self.language = language
+        self.language = 'EN' if language == 'english' else 'FR'
         self.ids_train_df = self._parse_input_train(train_csv)
         self.human_triplet, self.human_contrast = self._parse_input_human(human_csv)
         self.train_dir = train_dir
