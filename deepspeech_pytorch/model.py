@@ -275,11 +275,12 @@ class DeepSpeech(pl.LightningModule):
 
         x = torch.squeeze(x)
 
-        #print(x.size())
+        print('before gauss', x.size())
 
         if self.data_cfg.representation == "gauss":
             x = gaussrep(x)
             x = torch.squeeze(x)
+            print('in gauss', x)
 
         return x, output_lengths
 
