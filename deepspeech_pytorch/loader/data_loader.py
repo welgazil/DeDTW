@@ -448,7 +448,7 @@ class DTWData(Dataset, SpectrogramParser):
             labels_all = []
             for x in value:
                 if x[1] == self.language:
-                    labels_all += [x[0]]
+                    labels_all += [float(x[0])]
         else:
             print('Error, level not implemented')
 

@@ -324,12 +324,14 @@ class DeepSpeech(pl.LightningModule):
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True)
 
         # get real dtw
-        TGT, OTH, X = output1.cpu().numpy(), output2.cpu().numpy(), output3.cpu().numpy()
+
         print(TGT.shape, OTH.shape, X.shape)
         if self.data_cfg.representation == "gauss":
-            tgt_X = distcos(TGT, X)
-            oth_X = distcos(OTH, X)
+            TGT, OTH, X = output1, output2, output3
+            tgt_X = distcos(TGT, X).cpu().numpy()
+            oth_X = distcos(OTH, X).cpu().numpy
         else:
+            TGT, OTH, X = output1.cpu().numpy(), output2.cpu().numpy(), output3.cpu().numpy()
             tgt_X = compute_dtw(TGT,X, dist_for_cdist='cosine', norm_div=True)
             oth_X = compute_dtw(OTH,X, dist_for_cdist='cosine', norm_div=True)
         self.log('real_val_value', (oth_X - tgt_X) - labels.numpy(), prog_bar = True, on_epoch = True)
