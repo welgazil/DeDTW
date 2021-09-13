@@ -56,7 +56,7 @@ class DTWDataConfig:
     num_workers: int = 2  # Number of workers used in data-loading
     spect: SpectConfig = SpectConfig()
     aug: AugmentationConfig = AugmentationConfig()
-    representation: str = "gauss" # gauss or normal
+    representation: str = "normal" # gauss or normal
     labels: str = "with" #  with or without
     language_participants: str = "english" # english or french
     level: str = "contrast" # triplet or contrast
