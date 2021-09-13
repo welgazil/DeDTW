@@ -27,9 +27,16 @@ class DTWLosslabels(nn.Module):
         TGT, OTH, X = TGT.to(torch.float32), OTH.to(torch.float32), X.to(torch.float32)
         labels = torch.as_tensor(labels[0], dtype=torch.float)
         if self.representation == "gauss":
-            loss = self.criterion(distcos(OTH, X) - distcos(TGT, X), labels)
+            diff = distcos(OTH, X) - distcos(TGT, X)
+            loss = self.criterion(diff, labels)
+            print(labels, diff, loss)
         else:
-            loss = self.criterion(self.sdtw(OTH, X) - self.sdtw(TGT, X), labels)
+            diff = self.sdtw(OTH, X) - self.sdtw(TGT, X)
+            print(diff, labels)
+            loss = self.criterion(diff, labels)
+            print(loss)
+
+
         return loss
 
 
@@ -45,8 +52,6 @@ class DTWLosswithoutlabels(nn.Module):
         if self.representation == "gauss":
             loss = distcos(TGT, X) - distcos(OTH, X)
         else:
-            loss = self.sdtw(TGT, X) - self.sdtw(
-                OTH, X
-            )  # it is ok to put it this way because we want to minimize this
+            loss = self.sdtw(TGT, X) - self.sdtw(OTH, X)  # it is ok to put it this way because we want to minimize this
         # otherwise, the delta value is the other way around
         return loss

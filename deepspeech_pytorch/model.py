@@ -8,6 +8,7 @@ import torch.nn.functional as F
 from omegaconf import OmegaConf
 from torch.cuda.amp import autocast
 from torch.nn import CTCLoss
+from deepspeech_pytorch.real_dtw import compute_dtw
 
 from deepspeech_pytorch.configs.train_config import DTWDataConfig
 
@@ -19,8 +20,6 @@ from deepspeech_pytorch.configs.train_config import (
     SGDConfig,
     UniDirectionalConfig,
 )
-from deepspeech_pytorch.decoder import GreedyDecoder
-from deepspeech_pytorch.validation import CharErrorRate, WordErrorRate
 from deepspeech_pytorch.loss import DTWLosslabels, DTWLosswithoutlabels
 from deepspeech_pytorch.gauss import gaussrep
 
@@ -243,7 +242,7 @@ class DeepSpeech(pl.LightningModule):
             print("loss with labels")
             self.criterion = DTWLosslabels(representation=self.data_cfg.representation)
 
-        if self.data_cfg.labels == "without":
+        elif self.data_cfg.labels == "without":
             print("loss without labels")
             self.criterion = DTWLosswithoutlabels(
                 representation=self.data_cfg.representation
@@ -294,20 +293,21 @@ class DeepSpeech(pl.LightningModule):
 
         return output1, output2, output3
 
-    def training_step(self, batch, batch_idx):
+    def training_step(self, batch):
         data = batch
         TGT, OTH, X = data[0], data[1], data[2]
         id_triplets = data[3]
         labels = data[4]
 
-        output1, output2, output3 = self(TGT, OTH, X)
+        output1, output2, output3 = self.forward(TGT, OTH, X)
         # out = out.transpose(0, 1)  # TxNxH
         # out = out.log_softmax(-1)
 
         loss = self.criterion(output1, output2, output3, labels)
+        self.log('loss_train', loss, prog_bar=True, on_epoch=True)
         return loss
 
-    def validation_step(self, batch, batch_idx):
+    def validation_step(self, batch):
         data = batch
         # print(batch)
 
@@ -315,12 +315,18 @@ class DeepSpeech(pl.LightningModule):
         id_triplets = data[3]
         labels = data[4]
 
-        output1, output2, output3 = self(TGT, OTH, X)
+        output1, output2, output3 = self.forward(TGT, OTH, X)
 
         val_loss = self.criterion(output1, output2, output3, labels)
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True)
 
-        # ajouter un early stopping dans le trainer
+        # get real dtw
+        TGT, OTH, X = TGT.numpy(), OTH.numpy(), X.numpy()
+        tgt_X = compute_dtw(TGT,X, dist_for_cdist='cosine', norm_div=True)
+        oth_X = compute_dtw(OTH,X, dist_for_cdist='cosine', norm_div=True)
+        self.log('real_val_value', (oth_X - tgt_X) - labels.numpy(), prog_bar = True, on_epoch = True)
+
+
 
     def configure_optimizers(self):
         return torch.optim.Adam(self.parameters(), lr=1e-4)

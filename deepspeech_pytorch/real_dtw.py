@@ -248,3 +248,4 @@ def compute_dtw(x, y, dist_for_cdist, norm_div=False):
         return d
     else:
         return d / float(max(x.shape[0], y.shape[0]))
+
