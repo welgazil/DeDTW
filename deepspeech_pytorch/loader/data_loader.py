@@ -410,7 +410,7 @@ class DTWData(Dataset, SpectrogramParser):
         language: str,
         level: str,
         normalize: bool = False,
-
+        adding_noise: bool = False
         
     ):
         self.level = level
@@ -418,7 +418,15 @@ class DTWData(Dataset, SpectrogramParser):
         self.ids_train_df = self._parse_input_train(train_csv)
         self.human_triplet, self.human_contrast = self._parse_input_human(human_csv)
         self.train_dir = train_dir
-        super(DTWData, self).__init__(audio_conf=audio_conf, normalize=normalize, augmentation_conf=augmentation_conf)
+        self.adding_noise = adding_noise
+        aug_conf = augmentation_conf
+        if not self.adding_noise and aug_conf.gaussian_noise:
+            print('NOT ADDING NOISE FIRST')
+            aug_conf.gaussian_noise = False
+        else:
+            print('NOOW ADDING NOISE')
+
+        super(DTWData, self).__init__(audio_conf=audio_conf, normalize=normalize, augmentation_conf=aug_conf)
 
     def __getitem__(self, index):
         sample = self.ids_train_df[index]

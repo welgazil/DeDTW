@@ -130,7 +130,8 @@ class DeepSpeechDataModule(pl.LightningDataModule):
             train_dir=train_dir,
             augmentation_conf=self.aug_cfg,
             language = self.data_cfg.language_participants,
-            level=self.data_cfg.level
+            level=self.data_cfg.level,
+            adding_noise=False
 
         )
 
@@ -143,7 +144,8 @@ class DeepSpeechDataModule(pl.LightningDataModule):
                 train_dir=train_dir,
                 augmentation_conf=self.aug_cfg,
                 language=self.data_cfg.language_participants,
-                level=self.data_cfg.level
+                level=self.data_cfg.level,
+                adding_noise=True
             )
             dataset = ConcatDataset([dataset_gaussian_noise, dataset])
 
