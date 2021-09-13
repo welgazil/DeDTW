@@ -29,12 +29,12 @@ class DTWLosslabels(nn.Module):
         if self.representation == "gauss":
             diff = distcos(OTH, X) - distcos(TGT, X)
             loss = self.criterion(diff, labels)
-            print(labels, diff, loss)
+            #print(labels, diff, loss)
         else:
             diff = self.sdtw(OTH, X) - self.sdtw(TGT, X)
-            print(diff, labels)
+            #print(diff, labels)
             loss = self.criterion(diff, labels)
-            print(loss)
+            #print(loss)
 
 
         return loss

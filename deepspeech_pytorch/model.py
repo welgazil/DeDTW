@@ -276,12 +276,12 @@ class DeepSpeech(pl.LightningModule):
 
         x = torch.squeeze(x)
 
-        print('before gauss', x.size())
+        #print('before gauss', x.size())
 
         if self.data_cfg.representation == "gauss":
             x = gaussrep(x)
             x = torch.squeeze(x)
-            print('in gauss', x.size())
+            #print('in gauss', x.size())
 
         return x, output_lengths
 
@@ -298,7 +298,7 @@ class DeepSpeech(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         data = batch
         TGT, OTH, X = data[0], data[1], data[2]
-        print(TGT.shape, OTH.shape, X.shape)
+        #print(TGT.shape, OTH.shape, X.shape)
         id_triplets = data[3]
         labels = data[4]
 
@@ -325,7 +325,7 @@ class DeepSpeech(pl.LightningModule):
 
         # get real dtw
 
-        print(TGT.shape, OTH.shape, X.shape)
+        #print(TGT.shape, OTH.shape, X.shape)
         if self.data_cfg.representation == "gauss":
             TGT, OTH, X = output1, output2, output3
             tgt_X = distcos(TGT, X).cpu().numpy()
@@ -334,7 +334,7 @@ class DeepSpeech(pl.LightningModule):
             TGT, OTH, X = output1.cpu().numpy(), output2.cpu().numpy(), output3.cpu().numpy()
             tgt_X = compute_dtw(TGT,X, dist_for_cdist='cosine', norm_div=True)
             oth_X = compute_dtw(OTH,X, dist_for_cdist='cosine', norm_div=True)
-        print(oth_X, tgt_X, labels)
+        #print(oth_X, tgt_X, labels)
         self.log('real_val_value', (oth_X - tgt_X) - labels, prog_bar = True, on_epoch = True)
 
 

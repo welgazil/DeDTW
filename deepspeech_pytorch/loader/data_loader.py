@@ -72,10 +72,10 @@ class NoiseInjection(object):
         noise_start = np.random.rand() * (noise_len - data_len)
         noise_start = 0
         noise_end = noise_start + noise_len
-        print(self.sample_rate)
+        #print(self.sample_rate)
         noise_dst = audio_with_sox(noise_path, self.sample_rate, noise_start, noise_end)
-        print("lendata", len(data))
-        print("lennoise", len(noise_dst))
+        #print("lendata", len(data))
+        #print("lennoise", len(noise_dst))
         assert len(data) == len(noise_dst)
         noise_energy = np.sqrt(noise_dst.dot(noise_dst) / noise_dst.size)
         data_energy = np.sqrt(data.dot(data) / data.size)
@@ -125,6 +125,7 @@ class SpectrogramParser(AudioParser):
             if add_noise:
                 y = self.noise_injector.inject_noise(y)
         if self.gaussian_noise==True:
+            print('In gaussian NOISEEEEE #######################')
             wn = np.random.randn(len(y))
             y = y + 0.1 * wn
             
@@ -436,14 +437,14 @@ class DTWData(Dataset, SpectrogramParser):
         elif self.level == 'contrast':
             # we get contrast and language n top of dataset name
             triplet_cont1, triplet_cont2 = self.human_triplet[id_triplets][0][3], self.human_triplet[id_triplets][0][4]
-            print(triplet_cont1, triplet_cont2)
+            #print(triplet_cont1, triplet_cont2)
             if triplet_cont2 in self.human_contrast:
                 value = self.human_contrast[triplet_cont2]
             elif triplet_cont1 in self.human_contrast:
                 value = self.human_contrast[triplet_cont1]
             else:
                 print('Problem', triplet_cont1, triplet_cont2)
-            print(value)
+            #print(value)
             #value = self.human_contrast.get(triplet_cont1, self.human_contrast[triplet_cont2])
             labels_all = []
             for x in value:
@@ -452,7 +453,7 @@ class DTWData(Dataset, SpectrogramParser):
         else:
             print('Error, level not implemented')
 
-        print(labels_all)
+        #print(labels_all)
         # compute sfft
         TGT = self.parse_audio(TGT_path)
         OTH = self.parse_audio(OTH_path)
