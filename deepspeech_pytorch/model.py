@@ -293,7 +293,7 @@ class DeepSpeech(pl.LightningModule):
 
         return output1, output2, output3
 
-    def training_step(self, batch):
+    def training_step(self, batch, batch_idx):
         data = batch
         TGT, OTH, X = data[0], data[1], data[2]
         id_triplets = data[3]
@@ -307,7 +307,7 @@ class DeepSpeech(pl.LightningModule):
         self.log('loss_train', loss, prog_bar=True, on_epoch=True)
         return loss
 
-    def validation_step(self, batch):
+    def validation_step(self, batch, batch_idx):
         data = batch
         # print(batch)
 
