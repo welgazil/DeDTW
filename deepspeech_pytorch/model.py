@@ -322,6 +322,7 @@ class DeepSpeech(pl.LightningModule):
 
         # get real dtw
         TGT, OTH, X = TGT.cpu().numpy(), OTH.cpu().numpy(), X.cpu().numpy()
+        print(TGT.shape)
         tgt_X = compute_dtw(TGT,X, dist_for_cdist='cosine', norm_div=True)
         oth_X = compute_dtw(OTH,X, dist_for_cdist='cosine', norm_div=True)
         self.log('real_val_value', (oth_X - tgt_X) - labels.numpy(), prog_bar = True, on_epoch = True)
