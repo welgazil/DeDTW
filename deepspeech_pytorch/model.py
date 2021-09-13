@@ -296,6 +296,7 @@ class DeepSpeech(pl.LightningModule):
     def training_step(self, batch, batch_idx):
         data = batch
         TGT, OTH, X = data[0], data[1], data[2]
+        print(TGT.shape, OTH.shape, X.shape)
         id_triplets = data[3]
         labels = data[4]
 
@@ -321,8 +322,8 @@ class DeepSpeech(pl.LightningModule):
         self.log("val_loss", val_loss, prog_bar=True, on_epoch=True)
 
         # get real dtw
-        TGT, OTH, X = TGT.cpu().numpy(), OTH.cpu().numpy(), X.cpu().numpy()
-        print(TGT.shape)
+        TGT, OTH, X = TGT.cpu().numpy()[0], OTH.cpu().numpy()[0], X.cpu().numpy()[0]
+        print(TGT.shape, OTH.shape, X.shape)
         tgt_X = compute_dtw(TGT,X, dist_for_cdist='cosine', norm_div=True)
         oth_X = compute_dtw(OTH,X, dist_for_cdist='cosine', norm_div=True)
         self.log('real_val_value', (oth_X - tgt_X) - labels.numpy(), prog_bar = True, on_epoch = True)
