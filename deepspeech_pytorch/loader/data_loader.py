@@ -126,11 +126,11 @@ class SpectrogramParser(AudioParser):
             if add_noise:
                 y = self.noise_injector.inject_noise(y)
         if self.gaussian_noise==True:
-            print('In gaussian NOISEEEEE #######################')
+            #print('In gaussian NOISEEEEE #######################')
             wn = np.random.randn(len(y))
-            y = y + 0.1 * wn
-        else:
-            print('NOT in gaussian NOISEEEE #############')
+            y = y + 0.05 * wn
+        #else:
+        #print('NOT in gaussian NOISEEEE #############')
             
 
         n_fft = int(self.sample_rate * self.window_size)

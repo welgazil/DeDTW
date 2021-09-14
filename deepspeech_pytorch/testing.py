@@ -11,7 +11,6 @@ from deepspeech_pytorch.loader.data_loader import (
 )
 from deepspeech_pytorch.utils import load_model, load_decoder
 from deepspeech_pytorch.validation import run_evaluation, run_evaluationdtw
-from torch.utils.data import ConcatDataset
 
 
 @torch.no_grad()
@@ -25,8 +24,10 @@ def evaluate(cfg: EvalDTWConfig):
         train_csv=hydra.utils.to_absolute_path(cfg.test_path),
         human_csv=hydra.utils.to_absolute_path(cfg.human_test_csv),
         train_dir=hydra.utils.to_absolute_path(cfg.train_dir),
-        augmentation_conf=None,
-                gaussian_noise=False
+        augmentation_conf=cfg.augmentation,
+        language=cfg.language_participants,
+        level=cfg.level,
+        adding_noise=False
     )
 
     # if cfg.augmentation and cfg.augmentation.gaussian_noise:

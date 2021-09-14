@@ -189,7 +189,7 @@ def run_evaluationdtw(
         data = batch
         TGT, OTH, X = data[0], data[1], data[2]
         TGT, OTH, X = TGT.to(device), OTH.to(device), X.to(device)
-        id_triplets.append(data[3])
+        id_triplets.append(data[3]) # we get the triplet id
 
         with autocast(enabled=precision == 16):
             TGT_output, OTH_output, X_output = model(TGT, OTH, X)
@@ -224,11 +224,12 @@ def run_evaluationdtw(
                     OTH_output.cpu().numpy(),
                     X_output.cpu().numpy(),
                 )
-        delta_values.append(a)
+        delta_values.append(a) # we get the corresponding delta value
 
-        id_triplets2 = [id_triplets[x][0] for x in range(len(id_triplets))]
-        df = complet_csv(human_csv, delta_values, id_triplets2)
-
+    print(delta_values, id_triplets)
+    id_triplets2 = [id_triplets[x][0] for x in range(len(id_triplets))]
+    df = complet_csv(human_csv, delta_values, id_triplets2)
+    print(df[:10])
     spearman = get_correlation_values(
         df["user_ans"], df["delta_values"], mode="spearman"
     )

@@ -71,8 +71,11 @@ class EvalDTWConfig(InferenceConfig):
     save_output: str = ""  # Saves output of model from test to this file_path
     batch_size: int = 1  # Batch size for testing
     num_workers: int = 4
-    representation: str = "dtw"
     augmentation: AugmentationConfig = AugmentationConfig()
+    representation: str = "normal"  # gauss or normal
+    labels: str = "with"  # with or without
+    language_participants: str = "english"  # english or french
+    level: str = "contrast"  # triplet or contrast
 
 
 @dataclass
