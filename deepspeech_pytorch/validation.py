@@ -226,9 +226,10 @@ def run_evaluationdtw(
                 )
         delta_values.append(a) # we get the corresponding delta value
 
-    print(delta_values, id_triplets)
+    #print(delta_values, id_triplets)
     id_triplets2 = [id_triplets[x][0] for x in range(len(id_triplets))]
     df = complet_csv(human_csv, delta_values, id_triplets2)
+
     print(df[:10])
     spearman = get_correlation_values(
         df["user_ans"], df["delta_values"], mode="spearman"

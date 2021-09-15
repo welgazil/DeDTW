@@ -20,12 +20,7 @@ def get_correlation_values(human_answers, model_results, mode="pearson"):
     human_answers = np.array(human_answers)
     model_results = np.array(model_results)
 
-    # Not necessary, pearson correlation does not care if value ar normalized or not, same for spearman
-    """if not normalized:
-        std_human_answers = np.std(human_answers)
-        std_model_results = np.std(model_results)
-        human_answers /= std_human_answers
-        model_results /= std_model_results"""
+
 
     if mode == "pearson":
         return stats.pearsonr(model_results, human_answers)[0]
