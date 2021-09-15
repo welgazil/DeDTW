@@ -104,10 +104,11 @@ def complet_csv(human_csv, delta, triplet_id):
         as_index=False,
     )
     ans = gf.user_ans.mean()
+    print(ans)
 
     # we divide user ans by 3 for specific datasets
-    ans[ans['dataset'] == "WorldVowels", ['user_ans']] = ans[ans['dataset'] == "WorldVowels", ['user_ans']]/3.
-    ans[ans['dataset'] == "zerospeech", ['user_ans']] = ans[ans['dataset'] == "zerospeech", ['user_ans']] / 3.
+    ans.loc[ans['dataset'] == "WorldVowels", ['user_ans']] = ans.loc[ans['dataset'] == "WorldVowels", ['user_ans']]/3.
+    ans.loc[ans['dataset'] == "zerospeech", ['user_ans']] = ans.loc[ans['dataset'] == "zerospeech", ['user_ans']] / 3.
 
     # We complete with delta values
     df2 = ans[ans["triplet_id"].isin(triplet_id)].copy()
