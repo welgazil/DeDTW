@@ -31,7 +31,7 @@ class AugmentationConfig:
     noise_min: float = 0.0  # Minimum noise level to sample from. (1.0 means all noise, not original signal)
     noise_max: float = 0.5  # Maximum noise levels to sample from. Maximum 1.0
     noise_levels: tuple = (0, 0.5)
-    gaussian_noise: bool = True
+    gaussian_noise: bool = False
 
 
 #@dataclass
