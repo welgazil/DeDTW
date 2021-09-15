@@ -201,7 +201,7 @@ def run_evaluationdtw(
                     OTH_output.cpu().numpy(),
                     X_output.cpu().numpy(),
                 )
-            if representation == "dtw":
+            if representation == "normal":
                 a = get_res(
                     TGT_output.cpu().numpy(),
                     OTH_output.cpu().numpy(),
@@ -218,7 +218,7 @@ def run_evaluationdtw(
                     OTH_output.cpu().numpy(),
                     X_output.cpu().numpy(),
                 )
-            if representation == "dtw":
+            if representation == "normal":
                 a = get_res(
                     TGT_output.cpu().numpy(),
                     OTH_output.cpu().numpy(),
